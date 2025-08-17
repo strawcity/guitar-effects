@@ -6,6 +6,7 @@ from config import Config
 from chord_detector import ChordDetector
 from arpeggio_engine import ArpeggioEngine
 from synth_engine import SynthEngine
+from gpio_interface import GPIOInterface
 
 class GuitarArpeggiator:
     def __init__(self):
@@ -13,6 +14,9 @@ class GuitarArpeggiator:
         self.chord_detector = ChordDetector(self.config)
         self.arpeggio_engine = ArpeggioEngine(self.config)
         self.synth_engine = SynthEngine(self.config)
+        
+        # Initialize GPIO interface
+        self.gpio = GPIOInterface(self.config)
         
         # Audio state
         self.is_running = False
@@ -41,69 +45,32 @@ class GuitarArpeggiator:
         
         # Auto-detect and configure audio devices
         self.detect_audio_devices()
+        
+        # Setup GPIO button callbacks
+        self.setup_gpio_callbacks()
+    
+    def setup_gpio_callbacks(self):
+        """Setup GPIO button callbacks for Pi control"""
+        if self.gpio.gpio_available:
+            self.gpio.register_button_callback('start', self.start)
+            self.gpio.register_button_callback('stop', self.stop)
+            self.gpio.register_button_callback('tempo_up', lambda: self.set_tempo(self.tempo + 10))
+            self.gpio.register_button_callback('tempo_down', lambda: self.set_tempo(self.tempo - 10))
+            print("✅ GPIO button callbacks registered")
     
     def detect_audio_devices(self):
-        """Auto-detect and configure audio devices"""
+        """Auto-detect and configure audio devices with platform-specific logic"""
         print("\n🔊 Auto-detecting audio devices...")
         
         try:
             devices = sd.query_devices()
+            device_priorities = self.config.get_audio_devices()
             
-            # Look for Scarlett 2i2 or similar audio interfaces
-            scarlett_found = False
-            for i, device in enumerate(devices):
-                device_name = device['name'].lower()
-                
-                # Check for Scarlett devices
-                if any(keyword in device_name for keyword in ['scarlett', '2i2', 'focusrite', 'audio interface']):
-                    # Check if device has input capability (handle different device structures)
-                    has_input = False
-                    if 'max_inputs' in device:
-                        has_input = device['max_inputs'] > 0
-                    elif 'inputs' in device:
-                        has_input = device['inputs'] > 0
-                    elif 'hostapi' in device:  # Some devices don't specify input/output counts
-                        has_input = True  # Assume it has input if it's a valid device
-                    
-                    if has_input:
-                        self.input_device = i
-                        scarlett_found = True
-                        print(f"✅ Found input device: {device['name']} (ID: {i})")
-                        break
+            # Find input device based on platform priorities
+            self.input_device = self._find_input_device(devices, device_priorities['input_priorities'])
             
-            # If no Scarlett found, use default input
-            if not scarlett_found:
-                default_input = sd.query_devices(kind='input')
-                self.input_device = default_input['index']
-                print(f"⚠️  No Scarlett device found, using default input: {default_input['name']}")
-            
-            # Find output device (prefer built-in speakers/headphones)
-            output_found = False
-            for i, device in enumerate(devices):
-                device_name = device['name'].lower()
-                
-                # Prefer built-in audio output
-                if any(keyword in device_name for keyword in ['speakers', 'headphones', 'macbook', 'air']):
-                    # Check if device has output capability
-                    has_output = False
-                    if 'max_outputs' in device:
-                        has_output = device['max_outputs'] > 0
-                    elif 'outputs' in device:
-                        has_output = device['outputs'] > 0
-                    elif 'hostapi' in device:
-                        has_output = True
-                    
-                    if has_output:
-                        self.output_device = i
-                        output_found = True
-                        print(f"✅ Found output device: {device['name']} (ID: {i})")
-                        break
-            
-            # If no preferred output found, use default
-            if not output_found:
-                default_output = sd.query_devices(kind='output')
-                self.output_device = default_output['index']
-                print(f"⚠️  Using default output: {default_output['name']}")
+            # Find output device based on platform priorities
+            self.output_device = self._find_output_device(devices, device_priorities['output_priorities'])
             
             print(f"🎯 Final configuration:")
             print(f"   Input: {devices[self.input_device]['name']} (ID: {self.input_device})")
@@ -115,6 +82,68 @@ class GuitarArpeggiator:
             self.input_device = None
             self.output_device = None
             print("⚠️  Falling back to system default devices")
+    
+    def _find_input_device(self, devices, priorities):
+        """Find input device based on platform-specific priorities"""
+        # First try priority devices
+        for priority in priorities:
+            for i, device in enumerate(devices):
+                device_name = device['name'].lower()
+                if priority.lower() in device_name:
+                    # Check if device has input capability
+                    if self._device_has_input(device):
+                        print(f"✅ Found priority input device: {device['name']} (ID: {i})")
+                        return i
+        
+        # Fallback to default input
+        try:
+            default_input = sd.query_devices(kind='input')
+            print(f"⚠️  No priority input found, using default: {default_input['name']}")
+            return default_input['index']
+        except:
+            print("⚠️  No input devices found")
+            return None
+    
+    def _find_output_device(self, devices, priorities):
+        """Find output device based on platform-specific priorities"""
+        # First try priority devices
+        for priority in priorities:
+            for i, device in enumerate(devices):
+                device_name = device['name'].lower()
+                if priority.lower() in device_name:
+                    # Check if device has output capability
+                    if self._device_has_output(device):
+                        print(f"✅ Found priority output device: {device['name']} (ID: {i})")
+                        return i
+        
+        # Fallback to default output
+        try:
+            default_output = sd.query_devices(kind='output')
+            print(f"⚠️  No priority output found, using default: {default_output['name']}")
+            return default_output['index']
+        except:
+            print("⚠️  No output devices found")
+            return None
+    
+    def _device_has_input(self, device):
+        """Check if device has input capability"""
+        if 'max_inputs' in device:
+            return device['max_inputs'] > 0
+        elif 'inputs' in device:
+            return device['inputs'] > 0
+        elif 'hostapi' in device:
+            return True
+        return False
+    
+    def _device_has_output(self, device):
+        """Check if device has output capability"""
+        if 'max_outputs' in device:
+            return device['max_outputs'] > 0
+        elif 'outputs' in device:
+            return device['outputs'] > 0
+        elif 'hostapi' in device:
+            return True
+        return False
     
     def start(self):
         """Start the arpeggiator"""
@@ -151,10 +180,13 @@ class GuitarArpeggiator:
     
     def audio_callback(self, indata, outdata, frames, time, status):
         """Audio callback function - called by sounddevice for each audio chunk"""
-        # Handle macOS Core Audio errors gracefully
+        # Handle platform-specific audio errors gracefully
         if status:
-            if 'err=-50' in str(status) or 'Unknown Error' in str(status):
+            if self.config.is_mac and ('err=-50' in str(status) or 'Unknown Error' in str(status)):
                 # Ignore common macOS Core Audio errors
+                pass
+            elif self.config.is_pi and ('ALSA' in str(status) or 'PulseAudio' in str(status)):
+                # Ignore common Pi audio errors
                 pass
             else:
                 print(f"\nAudio status: {status}")
@@ -198,6 +230,11 @@ class GuitarArpeggiator:
                         self.current_chord = chord_result
                         print(f"\n🎸 Detected: {chord_result['root']} {chord_result['quality']} "
                               f"(confidence: {chord_result['confidence']:.2f})")
+                        
+                        # Flash GPIO LEDs for detected chord (Pi only)
+                        if self.gpio.gpio_available:
+                            chord_notes = chord_result.get('notes', [])
+                            self.gpio.flash_chord_leds(chord_notes, duration=0.5)
                         
                         # Generate arpeggio
                         self.current_arpeggio = self.arpeggio_engine.generate_arpeggio(
