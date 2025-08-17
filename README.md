@@ -159,6 +159,8 @@ Raspberry Pi GPIO → Component
 
 ### Basic Usage
 
+#### Interactive Mode (with screen)
+
 Run the main system:
 
 ```bash
@@ -172,6 +174,32 @@ The system will:
 3. **Detect audio devices** based on platform priorities
 4. **Run demo mode** with a C major chord
 5. **Start real-time processing** with guitar input
+
+#### Headless Mode (no screen - Pi only)
+
+Run without screen interaction, controlled entirely by GPIO buttons:
+
+```bash
+python headless_mode.py
+```
+
+**Setup for auto-start on boot:**
+
+```bash
+# Install headless mode service
+./install_headless.sh
+
+# Reboot to enable auto-start
+sudo reboot
+```
+
+**How it works:**
+
+1. **Pi boots** → System starts automatically
+2. **Press START button** → Arpeggiator begins
+3. **Press STOP button** → Arpeggiator stops
+4. **Tempo buttons** → Adjust BPM while running
+5. **LED indicators** → Show system status and chord detection
 
 ### Platform-Specific Behavior
 
@@ -228,6 +256,31 @@ arpeggiator.gpio.simulate_button_press('start')
 arpeggiator.gpio.set_led('C', True)  # Turn on C LED
 arpeggiator.gpio.flash_led('E', 0.5)  # Flash E LED for 0.5s
 ```
+
+### Headless Mode Features (Pi Only)
+
+The headless mode provides complete hands-free operation:
+
+#### **Button Controls:**
+
+- **START (GPIO 17)**: Start the arpeggiator
+- **STOP (GPIO 18)**: Stop the arpeggiator
+- **TEMPO UP (GPIO 22)**: Increase tempo by 10 BPM
+- **TEMPO DOWN (GPIO 23)**: Decrease tempo by 10 BPM
+
+#### **LED Indicators:**
+
+- **C LED (GPIO 12)**: Chord detection + Tempo up feedback
+- **E LED (GPIO 13)**: System running status (blinking when active)
+- **G LED (GPIO 16)**: Chord detection + Tempo down feedback
+
+#### **System Behavior:**
+
+- **Auto-start on boot**: System loads automatically when Pi powers on
+- **Button-activated**: Waits for START button before beginning
+- **Real-time control**: Adjust tempo while playing
+- **Visual feedback**: LEDs show chord detection and system status
+- **Error handling**: Visual error indicators if something goes wrong
 
 ### Available Patterns
 
