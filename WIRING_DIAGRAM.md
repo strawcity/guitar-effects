@@ -4,8 +4,6 @@
 
 ### **Components:**
 
-- **3x LEDs** (5mm, any color)
-- **3x 220Ω resistors** (for LEDs)
 - **4x Push buttons** (momentary)
 - **4x 10kΩ resistors** (for buttons)
 - **Breadboard** (for prototyping)
@@ -61,39 +59,9 @@ Button Terminal 2 ←→ Ground (GND)
 
 ---
 
-## **💡 LED Wiring (GPIO as OUTPUT):**
+## LED Wiring
 
-### **How LEDs Work:**
-
-```
-3.3V ←→ 220Ω Resistor ←→ LED ←→ GPIO Pin (Output)
-```
-
-**When GPIO is HIGH:** Current flows, LED lights up **When GPIO is LOW:** No
-current, LED is off
-
-### **LED Connections:**
-
-#### **C Note LED (GPIO 12):**
-
-```
-3.3V ←→ 220Ω Resistor ←→ LED Anode (+)
-LED Cathode (-) ←→ GPIO 12 (Pin 32)
-```
-
-#### **E Note LED (GPIO 13):**
-
-```
-3.3V ←→ 220Ω Resistor ←→ LED Anode (+)
-LED Cathode (-) ←→ GPIO 13 (Pin 33)
-```
-
-#### **G Note LED (GPIO 16):**
-
-```
-3.3V ←→ 220Ω Resistor ←→ LED Anode (+)
-LED Cathode (-) ←→ GPIO 16 (Pin 36)
-```
+LEDs are no longer used in this project. You can skip any LED wiring.
 
 ---
 
@@ -102,7 +70,6 @@ LED Cathode (-) ←→ GPIO 16 (Pin 36)
 ### **Power Distribution:**
 
 ```
-3.3V ←→ Multiple 220Ω resistors ←→ LED circuits
 Ground (GND) ←→ Multiple 10kΩ resistors ←→ Button circuits
 ```
 
@@ -110,9 +77,7 @@ Ground (GND) ←→ Multiple 10kΩ resistors ←→ Button circuits
 
 ```
 Power Rail (3.3V):
-├── 220Ω → LED C → GPIO 12
-├── 220Ω → LED E → GPIO 13
-└── 220Ω → LED G → GPIO 16
+(buttons use internal pull-ups; see button wiring below)
 
 Ground Rail (GND):
 ├── 10kΩ → Button START → GPIO 17
@@ -130,11 +95,9 @@ Ground Rail (GND):
 1. Connect **3.3V** to breadboard power rail
 2. Connect **Ground (GND)** to breadboard ground rail
 
-### **Step 2: LEDs**
+### **Step 2: (Skipped) LEDs**
 
-1. Place LED on breadboard (note anode/cathode)
-2. Connect **220Ω resistor** from 3.3V to LED anode
-3. Connect **LED cathode** to GPIO pin via jumper wire
+LEDs are not used.
 
 ### **Step 3: Buttons**
 
@@ -154,18 +117,14 @@ Ground Rail (GND):
 
 ### **LED Polarity:**
 
-- **Anode (+)**: Longer leg, connects to resistor
-- **Cathode (-)**: Shorter leg, connects to GPIO
-- **Wrong polarity**: LED won't light up
+LEDs are not used.
 
 ### **Resistor Values:**
 
-- **220Ω for LEDs**: Prevents too much current
 - **10kΩ for buttons**: Pull-up resistor, not too strong
 
 ### **GPIO Configuration:**
 
-- **LEDs**: Configured as OUTPUT in software
 - **Buttons**: Configured as INPUT with internal pull-up enabled
 - **No external power needed**: Pi provides 3.3V and ground
 
@@ -177,7 +136,7 @@ Ground Rail (GND):
 2. **Buttons create a switch** between GPIO and ground
 3. **Pull-up resistors** ensure stable HIGH state when not pressed
 4. **Software detects voltage change** from HIGH to LOW
-5. **LEDs are controlled** by setting GPIO HIGH/LOW
+5. Buttons are read via GPIO input with pull-ups
 
 **The magic is that one GPIO pin can be either input OR output, and the button
 circuit creates a simple voltage divider that the Pi can read!**

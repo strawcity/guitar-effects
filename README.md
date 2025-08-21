@@ -3,7 +3,7 @@
 A real-time polyphonic chord detection and arpeggio generation system for guitar
 input. This system automatically detects guitar chords and generates electronic
 arpeggios in real-time. **Now with full Raspberry Pi support including GPIO
-controls!**
+button controls!**
 
 ## Features
 
@@ -17,8 +17,7 @@ controls!**
   synth type, and duration
 - **Cross-Platform Support**: Full compatibility with macOS, Linux, and
   Raspberry Pi
-- **GPIO Integration**: Physical LED indicators and button controls on Raspberry
-  Pi
+- **GPIO Integration**: Physical button controls on Raspberry Pi
 - **Real-time Audio Processing**: Low-latency audio input/output using
   sounddevice
 - **Smart Audio Detection**: Platform-specific audio device detection and
@@ -36,8 +35,8 @@ The system consists of five main components:
    sequencing
 4. **SynthEngine** (`synth_engine.py`): Electronic sound synthesis with multiple
    waveforms
-5. **GPIOInterface** (`gpio_interface.py`): Raspberry Pi GPIO control for LEDs
-   and buttons
+5. **GPIOInterface** (`gpio_interface.py`): Raspberry Pi GPIO control for
+   buttons
 
 ## Installation
 
@@ -100,7 +99,7 @@ sudo reboot
 ### Raspberry Pi
 
 - **Audio Backend**: ALSA with hardware acceleration
-- **GPIO Controls**: LED indicators, physical buttons, volume controls
+- **GPIO Controls**: Physical buttons, volume controls
 - **Optimizations**: Performance CPU governor, audio group permissions
 - **Device Priority**: USB audio devices, built-in audio
 
@@ -115,11 +114,6 @@ sudo reboot
 ### Pin Layout (BCM Numbering)
 
 ```
-🎵 Audio Interface LEDs:
-   C Note LED: GPIO 12
-   E Note LED: GPIO 13
-   G Note LED: GPIO 16
-
 🔘 Control Buttons:
    Start/Stop: GPIO 17
    Tempo Up:   GPIO 22
@@ -135,21 +129,16 @@ sudo reboot
 
 ```
 Raspberry Pi GPIO → Component
-    12 → C Note LED (with 220Ω resistor)
-    13 → E Note LED (with 220Ω resistor)
-    16 → G Note LED (with 220Ω resistor)
     17 → Start/Stop Button (with 10kΩ pull-up)
     22 → Tempo Up Button (with 10kΩ pull-up)
     23 → Tempo Down Button (with 10kΩ pull-up)
-    24 → Mute LED/Relay
-    25 → Volume Up LED/Relay
-    26 → Volume Down LED/Relay
+    24 → Mute (e.g., relay)
+    25 → Volume Up (e.g., relay)
+    26 → Volume Down (e.g., relay)
 ```
 
 ### Component Requirements
 
-- **LEDs**: 3x 5mm LEDs (any color)
-- **Resistors**: 3x 220Ω resistors for LEDs
 - **Buttons**: 3x momentary push buttons
 - **Pull-up Resistors**: 3x 10kΩ resistors for buttons
 - **Breadboard**: For prototyping
@@ -199,7 +188,7 @@ sudo reboot
 2. **Press START button** → Arpeggiator begins
 3. **Press STOP button** → Arpeggiator stops
 4. **Tempo buttons** → Adjust BPM while running
-5. **LED indicators** → Show system status and chord detection
+5. System status via logs
 
 ### Platform-Specific Behavior
 
@@ -211,10 +200,9 @@ sudo reboot
 
 #### Raspberry Pi
 
-- **LED Feedback**: Chord detection lights up corresponding note LEDs
 - **Button Controls**: Physical buttons for start/stop and tempo control
 - **Audio Optimization**: ALSA backend with hardware acceleration
-- **GPIO Status**: Real-time LED indicators for system state
+- **GPIO Status**: Real-time button callback handling
 
 ### Interactive Commands
 
@@ -252,9 +240,7 @@ arpeggiator.gpio.get_status()
 # Simulate button press (for testing)
 arpeggiator.gpio.simulate_button_press('start')
 
-# Control LEDs manually
-arpeggiator.gpio.set_led('C', True)  # Turn on C LED
-arpeggiator.gpio.flash_led('E', 0.5)  # Flash E LED for 0.5s
+# LEDs removed; no LED control APIs
 ```
 
 ### Headless Mode Features (Pi Only)
@@ -268,19 +254,12 @@ The headless mode provides complete hands-free operation:
 - **TEMPO UP (GPIO 22)**: Increase tempo by 10 BPM
 - **TEMPO DOWN (GPIO 23)**: Decrease tempo by 10 BPM
 
-#### **LED Indicators:**
-
-- **C LED (GPIO 12)**: Chord detection + Tempo up feedback
-- **E LED (GPIO 13)**: System running status (blinking when active)
-- **G LED (GPIO 16)**: Chord detection + Tempo down feedback
-
 #### **System Behavior:**
 
 - **Auto-start on boot**: System loads automatically when Pi powers on
 - **Button-activated**: Waits for START button before beginning
 - **Real-time control**: Adjust tempo while playing
-- **Visual feedback**: LEDs show chord detection and system status
-- **Error handling**: Visual error indicators if something goes wrong
+- **Error handling**: Errors printed to logs
 
 ### Available Patterns
 
@@ -387,7 +366,7 @@ Edit `config.py` to customize platform-specific and general settings:
 
 #### Raspberry Pi
 
-- **GPIO Pins**: LED and button pin assignments
+- **GPIO Pins**: Button pin assignments
 - **Audio Backend**: ALSA configuration
 - **Performance**: CPU governor and buffer optimizations
 - **Audio Group**: User permissions for audio access
@@ -406,9 +385,6 @@ Edit `config.py` to customize platform-specific and general settings:
 ### GPIO Configuration (Pi Only)
 
 ```python
-# LED pins for chord detection
-self.led_pins = {'C': 12, 'E': 13, 'G': 16}
-
 # Button pins for control
 self.button_pins = {'start': 17, 'stop': 18, 'tempo_up': 22, 'tempo_down': 23}
 
@@ -447,7 +423,6 @@ self.audio_interface_pins = {'mute': 24, 'volume_up': 25, 'volume_down': 26}
 ### GPIO System (Pi Only)
 
 - **Event-Driven**: Button presses trigger immediate callbacks
-- **Non-Blocking**: LED control doesn't interfere with audio processing
 - **Hardware Abstraction**: Clean interface that works across platforms
 - **Error Handling**: Graceful fallback when GPIO operations fail
 

@@ -43,12 +43,12 @@ class Config:
         
         # GPIO settings (Pi only)
         self.gpio_available = self.is_pi
+        # LEDs are no longer used; keep attribute as empty for compatibility
+        self.led_pins = {}
         if self.is_pi:
-            self.led_pins = {'C': 12, 'E': 13, 'G': 16}
             self.button_pins = {'start': 17, 'stop': 18, 'tempo_up': 22, 'tempo_down': 23}
             self.audio_interface_pins = {'mute': 24, 'volume_up': 25, 'volume_down': 26}
         else:
-            self.led_pins = {}
             self.button_pins = {}
             self.audio_interface_pins = {}
         

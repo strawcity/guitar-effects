@@ -231,10 +231,7 @@ class GuitarArpeggiator:
                         print(f"\n🎸 Detected: {chord_result['root']} {chord_result['quality']} "
                               f"(confidence: {chord_result['confidence']:.2f})")
                         
-                        # Flash GPIO LEDs for detected chord (Pi only)
-                        if self.gpio.gpio_available:
-                            chord_notes = chord_result.get('notes', [])
-                            self.gpio.flash_chord_leds(chord_notes, duration=0.5)
+                        # LEDs removed: no visual chord feedback
                         
                         # Generate arpeggio
                         self.current_arpeggio = self.arpeggio_engine.generate_arpeggio(

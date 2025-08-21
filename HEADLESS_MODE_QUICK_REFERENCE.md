@@ -5,8 +5,8 @@
 ### **1. Power Up** ⚡
 
 - Connect power to Raspberry Pi
-- Wait for system to boot (about 30 seconds)
-- **E LED will blink slowly** = System ready
+- Wait for system to boot (about 30 seconds) System ready message appears in
+  logs
 
 ### **2. Connect Guitar** 🎸
 
@@ -16,9 +16,8 @@
 
 ### **3. Press START** ▶️
 
-- Press **START button** (GPIO 17)
-- **All LEDs flash** = Arpeggiator starting
-- **E LED blinks rapidly** = System running
+- Press **START button** (GPIO 17) Arpeggiator starting and running status shown
+  in logs
 - Start playing guitar!
 
 ---
@@ -34,27 +33,17 @@
 
 ---
 
-## **💡 LED Status Indicators:**
+## Status Indicators
 
-| LED   | GPIO | Meaning                                                      |
-| ----- | ---- | ------------------------------------------------------------ |
-| **C** | 12   | **Chord detected** OR **Tempo increased**                    |
-| **E** | 13   | **System status** (slow blink = ready, fast blink = running) |
-| **G** | 16   | **Chord detected** OR **Tempo decreased**                    |
+Status is provided via console logs and service logs.
 
 ---
 
-## **🎯 LED Patterns:**
+## Status Patterns
 
-| Pattern                  | Meaning                         |
-| ------------------------ | ------------------------------- |
-| **E LED slow blink**     | System ready, waiting for START |
-| **E LED fast blink**     | Arpeggiator running             |
-| **C/E/G flash together** | System starting up              |
-| **C/E/G rapid flash 3x** | Error occurred                  |
-| **C flash briefly**      | Tempo increased                 |
-| **G flash briefly**      | Tempo decreased                 |
-| **C/E/G light up**       | Chord detected (while playing)  |
+- System ready: Logged on startup
+- Arpeggiator running: Logged on start
+- Error conditions: Logged with ❌ prefix
 
 ---
 
@@ -64,7 +53,7 @@
 | ----------------------- | --------------------------------------------------- |
 | **No sound**            | Check Scarlett connections, volume levels           |
 | **Buttons not working** | Check wiring, reboot Pi                             |
-| **LEDs not lighting**   | Check GPIO connections, reboot Pi                   |
+| Buttons not responding  | Check GPIO connections, reboot Pi                   |
 | **System won't start**  | Check logs: `sudo journalctl -u guitar-arpeggiator` |
 | **Audio crackling**     | Check USB connection, reboot Pi                     |
 
@@ -93,12 +82,12 @@ sudo systemctl start guitar-arpeggiator
 
 ## **🎵 Typical Workflow:**
 
-1. **Power on Pi** → Wait for E LED slow blink
+1. **Power on Pi** → Wait for READY log message
 2. **Connect guitar** → Plug into Scarlett 2i2
-3. **Press START** → All LEDs flash, E LED fast blink
-4. **Play guitar** → C/E/G LEDs light up for detected chords
+3. **Press START** → System logs running status
+4. **Play guitar** → Chord detections shown in logs
 5. **Adjust tempo** → Press TEMPO buttons while playing
-6. **Press STOP** → System stops, E LED slow blink
+6. **Press STOP** → System stops and logs ready status
 7. **Power off** → Safe to disconnect power
 
 ---

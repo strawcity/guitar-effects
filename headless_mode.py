@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
 Headless Mode for Guitar Arpeggiator
-Runs without screen, controlled by GPIO buttons and LEDs
+Runs without screen, controlled by GPIO buttons
 """
 
 import time
-import threading
 import signal
 import sys
 from config import Config
@@ -29,9 +28,7 @@ class HeadlessArpeggiator:
         # Initialize GPIO callbacks
         self._setup_gpio_callbacks()
         
-        # Status tracking
-        self.status_led_state = False
-        self.status_thread = None
+        # Status tracking (no LEDs)
         
         print("🎸 Headless Guitar Arpeggiator initialized!")
         print("   Press START button to begin")
@@ -70,17 +67,12 @@ class HeadlessArpeggiator:
             
             self.is_running = True
             
-            # Start status LED blinking
-            self._start_status_led()
-            
-            # Flash all LEDs to indicate start
-            self.gpio.flash_chord_leds(['C', 'E', 'G'], duration=1.0)
+            # LEDs removed: no visual start indication
             
             print("✅ Arpeggiator started successfully!")
             
         except Exception as e:
             print(f"❌ Failed to start arpeggiator: {e}")
-            self._flash_error_leds()
     
     def _stop_arpeggiator(self):
         """Stop the arpeggiator"""
@@ -98,12 +90,7 @@ class HeadlessArpeggiator:
             
             self.is_running = False
             
-            # Stop status LED
-            self._stop_status_led()
-            
-            # Turn off all LEDs
-            for note in ['C', 'E', 'G']:
-                self.gpio.set_led(note, False)
+            # LEDs removed: no status LED to stop
             
             print("✅ Arpeggiator stopped")
             
@@ -117,8 +104,7 @@ class HeadlessArpeggiator:
             new_tempo = min(200, current_tempo + 10)
             self.arpeggiator.set_tempo(new_tempo)
             
-            # Flash tempo LED
-            self.gpio.flash_led('C', duration=0.2)
+            # LEDs removed: no tempo LED flash
             print(f"🎵 Tempo increased to {new_tempo} BPM")
     
     def _tempo_down(self):
@@ -128,43 +114,8 @@ class HeadlessArpeggiator:
             new_tempo = max(60, current_tempo - 10)
             self.arpeggiator.set_tempo(new_tempo)
             
-            # Flash tempo LED
-            self.gpio.flash_led('G', duration=0.2)
+            # LEDs removed: no tempo LED flash
             print(f"🎵 Tempo decreased to {new_tempo} BPM")
-    
-    def _start_status_led(self):
-        """Start blinking status LED"""
-        if not self.gpio.gpio_available:
-            return
-        
-        self.status_thread = threading.Thread(target=self._status_led_loop, daemon=True)
-        self.status_thread.start()
-    
-    def _stop_status_led(self):
-        """Stop blinking status LED"""
-        self.status_thread = None
-    
-    def _status_led_loop(self):
-        """Blink status LED to show system is running"""
-        while self.status_thread and self.is_running:
-            # Use the 'E' LED as a status indicator
-            self.gpio.set_led('E', self.status_led_state)
-            self.status_led_state = not self.status_led_state
-            time.sleep(1.0)  # Blink every second
-    
-    def _flash_error_leds(self):
-        """Flash all LEDs to indicate error"""
-        if not self.gpio.gpio_available:
-            return
-        
-        # Flash all LEDs rapidly 3 times
-        for _ in range(3):
-            for note in ['C', 'E', 'G']:
-                self.gpio.set_led(note, True)
-            time.sleep(0.2)
-            for note in ['C', 'E', 'G']:
-                self.gpio.set_led(note, False)
-            time.sleep(0.2)
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals"""
@@ -196,7 +147,7 @@ class HeadlessArpeggiator:
                 if self.is_running and self.arpeggiator and not self.arpeggiator.is_running:
                     print("⚠️  Arpeggiator stopped unexpectedly")
                     self.is_running = False
-                    self._stop_status_led()
+                    # LEDs removed: no status LED to stop
                 
         except KeyboardInterrupt:
             print("\n🔄 Keyboard interrupt received")

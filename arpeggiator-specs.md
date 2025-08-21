@@ -41,7 +41,7 @@ os.path.exists("/sys/firmware/devicetree/base/model")
 
         # GPIO settings (Pi only)
         self.gpio_available = self.is_pi
-        self.led_pins = {'C': 12, 'E': 13, 'G': 16} if self.is_pi else {}
+        # LEDs removed; no led_pins used
 
         print(f"Running on: {self.platform}")
         print(f"GPIO available: {self.gpio_available}")
