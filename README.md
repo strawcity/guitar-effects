@@ -156,6 +156,24 @@ Run the main system:
 python main.py
 ```
 
+Or use the interactive CLI (keyboard control on a connected monitor):
+
+```bash
+python interactive_cli.py
+```
+
+Interactive CLI commands:
+
+```
+start | stop | status
+tempo <bpm>|+<n>|-<n>
+pattern <name>   (type 'patterns' to list)
+synth <name>     (type 'synths' to list)
+duration <seconds>
+demo | test_audio
+quit
+```
+
 The system will:
 
 1. **Auto-detect platform** and apply optimizations
