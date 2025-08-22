@@ -43,6 +43,7 @@ class GuitarArpeggiator:
         print(f"Default pattern: {self.pattern}")
         print(f"Default synth: {self.synth_type}")
         print("🎵 Arpeggios will play for full musical measures - no new chords until measure completes!")
+        print("🎸 Arpeggios only trigger with 3+ notes detected (filters out single notes and power chords)")
         
         # Auto-detect and configure audio devices
         self.detect_audio_devices()
@@ -248,6 +249,9 @@ class GuitarArpeggiator:
                         # Detect chord with detailed debugging
                         chord_result = self.chord_detector.detect_chord(audio_data)
                         
+                        # Store the result for reference
+                        self.last_chord_result = chord_result
+                        
                         # Always show the raw detection results for debugging
                         if chord_result['valid']:
                             print(f"\n🔍 Raw chord detection results:")
@@ -285,11 +289,14 @@ class GuitarArpeggiator:
                         if 'notes' in chord_result:
                             print(f"   Chord notes: {chord_result['notes']}")
                         
-                        # Update current chord if valid and above confidence threshold
-                        if chord_result['valid'] and chord_result['confidence'] > 0.6:
+                                            # Update current chord if valid, above confidence threshold, AND has at least 3 notes
+                    if chord_result['valid'] and chord_result['confidence'] > 0.6:
+                        # Check if we have at least 3 notes for a proper chord
+                        note_count = len(chord_result.get('notes', []))
+                        if note_count >= 3:
                             self.last_chord_time = current_time
                             self.current_chord = chord_result
-                            print(f"🎸 ✅ Chord confirmed: {chord_result['root']} {chord_result['quality']}")
+                            print(f"🎸 ✅ Chord confirmed: {chord_result['root']} {chord_result['quality']} ({note_count} notes)")
                             
                             # Generate arpeggio
                             self.current_arpeggio = self.arpeggio_engine.generate_arpeggio(
@@ -299,9 +306,13 @@ class GuitarArpeggiator:
                             # Play arpeggio in separate thread to avoid blocking
                             threading.Thread(target=self.play_arpeggio, daemon=True).start()
                         else:
-                            print(f"⚠️  Chord detected but confidence too low ({chord_result.get('confidence', 0):.2f})")
+                            print(f"⚠️  Chord detected but only {note_count} notes - need at least 3 for arpeggio")
                             if chord_result.get('valid'):
                                 print(f"   Detected: {chord_result.get('root', 'Unknown')} {chord_result.get('quality', 'Unknown')}")
+                    else:
+                        print(f"⚠️  Chord detected but confidence too low ({chord_result.get('confidence', 0):.2f})")
+                        if chord_result.get('valid'):
+                            print(f"   Detected: {chord_result.get('root', 'Unknown')} {chord_result.get('quality', 'Unknown')}")
                 
                 # Show when guitar signal is detected (even if not strong enough for chord detection)
                 if max_level > 0.001:  # Lower threshold for signal detection
@@ -313,6 +324,18 @@ class GuitarArpeggiator:
                         self.signal_detected = True
                 else:
                     self.signal_detected = False
+                    
+                # Show when we detect notes but don't have enough for a chord
+                if hasattr(self, 'last_chord_result') and self.last_chord_result:
+                    last_result = self.last_chord_result
+                    if last_result.get('valid') and len(last_result.get('notes', [])) < 3:
+                        note_count = len(last_result.get('notes', []))
+                        if not hasattr(self, 'showed_insufficient_notes') or not self.showed_insufficient_notes:
+                            print(f"\n⚠️  Detected {note_count} notes - need 3+ for arpeggio")
+                            print(f"   Notes: {last_result.get('notes', [])}")
+                            self.showed_insufficient_notes = True
+                else:
+                    self.showed_insufficient_notes = False
             else:
                 # Debug: show when no input data
                 if not hasattr(self, 'no_data_count'):
