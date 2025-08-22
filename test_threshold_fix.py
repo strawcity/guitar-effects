@@ -4,7 +4,7 @@ Test script to verify threshold fixes work correctly
 """
 
 import numpy as np
-from polyphonic_chord_detector import PolyphonicChordDetector
+from chordino_chord_detector import ChordinoChordDetector
 from chord_detector import ChordDetector
 
 def test_threshold_checks():
@@ -15,8 +15,8 @@ def test_threshold_checks():
     print("\n1️⃣ Testing very weak signal (0.001)...")
     weak_audio = np.random.normal(0, 0.001, 4096).astype(np.float32)
     
-    detector = PolyphonicChordDetector()
-    result = detector.detect_chord_polyphonic(weak_audio)
+    detector = ChordinoChordDetector()
+    result = detector.detect_chord_from_audio(weak_audio)
     
     if result['valid']:
         print("❌ Weak signal incorrectly detected as valid chord")
@@ -28,7 +28,7 @@ def test_threshold_checks():
     print("\n2️⃣ Testing strong signal (0.01)...")
     strong_audio = np.random.normal(0, 0.01, 4096).astype(np.float32)
     
-    result = detector.detect_chord_polyphonic(strong_audio)
+    result = detector.detect_chord_from_audio(strong_audio)
     print(f"   Result: valid={result['valid']}, notes={len(result.get('note_details', []))}")
     
     # Test 3: Chord detector threshold check

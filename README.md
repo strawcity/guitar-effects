@@ -1,14 +1,14 @@
 # Guitar Arpeggiator System
 
-A real-time polyphonic chord detection and arpeggio generation system for guitar
-input. This system automatically detects guitar chords and generates electronic
-arpeggios in real-time. **Now with full Raspberry Pi support including GPIO
-button controls!**
+A real-time professional chord detection and arpeggio generation system for
+guitar input. This system automatically detects guitar chords and generates
+electronic arpeggios in real-time. **Now with full Raspberry Pi support
+including GPIO button controls!**
 
 ## Features
 
-- **Real-time Chord Detection**: Uses FFT analysis to detect polyphonic guitar
-  chords
+- **Real-time Chord Detection**: Uses professional Chordino algorithm to detect
+  guitar chords
 - **Multiple Arpeggio Patterns**: 11 different arpeggio patterns including
   classic, trance, dubstep, and ambient styles
 - **Synthesizer Engine**: 9 different synthesizer types (saw, square, sine,
@@ -29,8 +29,8 @@ The system consists of five main components:
 
 1. **Config** (`config.py`): Platform detection, system configuration, and
    Pi-specific optimizations
-2. **ChordDetector** (`chord_detector.py`): Real-time polyphonic chord detection
-   using FFT
+2. **ChordDetector** (`chord_detector.py`): Real-time professional chord
+   detection using FFT
 3. **ArpeggioEngine** (`arpeggio_engine.py`): Pattern generation and arpeggio
    sequencing
 4. **SynthEngine** (`synth_engine.py`): Electronic sound synthesis with multiple
@@ -475,12 +475,12 @@ This standalone tool lets you:
 
 ### Chord Detection
 
-- **Professional-grade detection** using librosa audio analysis library
-- **Guitar-optimized algorithms** for accurate frequency detection
-- **Harmonic analysis** with harmonic-percussive separation
-- **Pitch tracking** with real-time frequency analysis
-- **Cents accuracy** for precise tuning detection
-- **Chord pattern recognition** for 11 common chord types
+- **Professional-grade detection** using Chordino algorithm
+- **Industry-standard algorithm** used in music analysis software
+- **Guitar-optimized** for accurate chord recognition
+- **Harmonic analysis** with chord structure detection
+- **Real-time processing** with minimal latency
+- **High accuracy** for major, minor, and extended chords
 
 ### Audio Processing
 

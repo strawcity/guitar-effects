@@ -2,7 +2,7 @@ import numpy as np
 from scipy import signal
 import math
 import time
-from polyphonic_chord_detector import PolyphonicChordDetector
+from chordino_chord_detector import ChordinoChordDetector
 
 class ChordDetector:
     def __init__(self, config):
@@ -10,10 +10,10 @@ class ChordDetector:
         self.sample_rate = config.sample_rate
         self.chunk_size = config.chunk_size
         
-        # Initialize the polyphonic chord detector for accurate chord detection
+        # Initialize the professional Chordino chord detector for accurate chord detection
         # Use optimized sample rate for better frequency resolution
         optimal_sample_rate = min(self.sample_rate, 44100)
-        self.chord_detector = PolyphonicChordDetector(optimal_sample_rate)
+        self.chord_detector = ChordinoChordDetector(optimal_sample_rate)
         
         # Note frequencies for all 12 chromatic notes across guitar range
         self.note_frequencies = {
@@ -85,7 +85,7 @@ class ChordDetector:
             return self.empty_chord_result()
     
     def find_frequencies_in_audio(self, audio_data):
-        """Extract dominant frequencies using polyphonic chord detector"""
+        """Extract dominant frequencies using professional Chordino detector"""
         # Convert to numpy array and normalize
         audio_array = np.array(audio_data, dtype=np.float32)
         if len(audio_array) == 0:
@@ -97,8 +97,8 @@ class ChordDetector:
             return []
         
         try:
-            # Use the polyphonic chord detector for accurate chord detection
-            chord_result = self.chord_detector.detect_chord_polyphonic(audio_array)
+            # Use the professional Chordino detector for accurate chord detection
+            chord_result = self.chord_detector.detect_chord_from_audio(audio_array)
             
             if chord_result and chord_result.get('valid'):
                 # Convert chord result to frequency data format
@@ -106,13 +106,13 @@ class ChordDetector:
                 for note in chord_result.get('note_details', []):
                     frequency_data.append({
                         'frequency': note['frequency'],
-                        'magnitude': note['magnitude'],
+                        'magnitude': note.get('strength', 1.0),
                         'note_info': note
                     })
                 return frequency_data
             
         except Exception as e:
-            print(f"⚠️  Polyphonic chord detector failed: {e}")
+            print(f"⚠️  Chordino detector failed: {e}")
         
         # Fallback to basic FFT if detector fails
         return self._fallback_fft_analysis(audio_array)
