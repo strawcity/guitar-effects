@@ -282,6 +282,7 @@ class GuitarArpeggiator:
                             can_start_new = True
                     
                     if can_start_new:
+                        print(f"\n🎸 Signal above threshold ({max_level:.4f} > 0.005) - detecting chord...")
                         # Detect chord with detailed debugging
                         chord_result = self.chord_detector.detect_chord(audio_data)
                         

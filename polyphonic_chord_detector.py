@@ -9,6 +9,7 @@ import librosa
 import librosa.display
 from typing import Dict, List, Tuple, Optional
 import warnings
+import time
 warnings.filterwarnings('ignore')
 
 class PolyphonicChordDetector:
@@ -58,6 +59,11 @@ class PolyphonicChordDetector:
             Dictionary with chord information
         """
         try:
+            # Check if audio level is too low for meaningful detection
+            audio_level = np.max(np.abs(audio_data))
+            if audio_level < 0.005:  # Same threshold as main system
+                return self._empty_chord_result()
+            
             # Method 1: Constant-Q Transform (better for polyphonic)
             CQT = librosa.cqt(
                 y=audio_data, 
@@ -88,6 +94,10 @@ class PolyphonicChordDetector:
             
             # Find peaks in the combined spectrum
             detected_notes = self._extract_polyphonic_notes(combined_mag)
+            
+            # Filter out weak detections (likely noise)
+            if not detected_notes or len(detected_notes) < 2:
+                return self._empty_chord_result()
             
             # Analyze chord structure
             chord_info = self._analyze_chord_structure(detected_notes)
@@ -123,6 +133,10 @@ class PolyphonicChordDetector:
                 )[peak_idx]
                 
                 magnitude = frame_magnitudes[peak_idx]
+                
+                # Filter out very weak peaks (likely noise)
+                if magnitude < 0.1:  # Minimum magnitude threshold
+                    continue
                 
                 if freq > 80 and freq < 1200:  # Guitar range
                     note_info = self._frequency_to_note_enhanced(freq)

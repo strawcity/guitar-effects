@@ -91,6 +91,11 @@ class ChordDetector:
         if len(audio_array) == 0:
             return []
         
+        # Check audio level before processing (same threshold as main system)
+        audio_level = np.max(np.abs(audio_array))
+        if audio_level < 0.005:  # Too weak for meaningful detection
+            return []
+        
         try:
             # Use the polyphonic chord detector for accurate chord detection
             chord_result = self.chord_detector.detect_chord_polyphonic(audio_array)
