@@ -91,7 +91,11 @@ pip install -r requirements.txt
 # Add user to audio group
 sudo usermod -a -G audio $USER
 
-# Reboot to apply changes
+# Fix USB audio issues (IMPORTANT for Scarlett 2i2)
+sudo nano /boot/firmware/cmdline.txt
+# Add "dwc_otg.fiq_fsm_enable=0" to the end of the line
+
+# Reboot to apply all changes
 sudo reboot
 ```
 
@@ -521,6 +525,10 @@ self.audio_interface_pins = {'mute': 24, 'volume_up': 25, 'volume_down': 26}
    project has been updated to use a single audio stream with mixed output to
    prevent crashes. If you still experience crashes, try increasing the buffer
    size in the audio_loop method.
+10. **Scarlett 2i2 not detected**: This is a common USB audio issue on Raspberry
+    Pi. Add `dwc_otg.fiq_fsm_enable=0` to `/boot/firmware/cmdline.txt` and
+    reboot. This disables a USB controller feature that interferes with USB
+    audio devices.
 
 #### Linux Specific
 
