@@ -47,40 +47,64 @@ class ArpeggiatorController(EffectController):
     def __init__(self, audio_processor: AudioProcessor):
         super().__init__("arpeggiator", audio_processor)
         
+    def start(self):
+        """Start the arpeggiator."""
+        super().start()
+        
+    def stop(self):
+        """Stop the arpeggiator."""
+        super().stop()
+        
+    def get_status(self) -> Dict[str, Any]:
+        """Get arpeggiator status."""
+        status = super().get_status()
+        status.update({
+            "tempo": self.arpeggiator.tempo,
+            "pattern": self.arpeggiator.pattern,
+            "synth": self.arpeggiator.synth_type,
+            "duration": self.arpeggiator.duration
+        })
+        
+        current = getattr(self.arpeggiator, 'current_chord', None)
+        if current and current.get('valid'):
+            status["current_chord"] = f"{current.get('root')} {current.get('quality')} (conf {current.get('confidence'):.2f})"
+        else:
+            status["current_chord"] = "none"
+            
+        return status
+        
     def set_tempo(self, tempo: int):
         """Set arpeggiator tempo."""
-        self.audio_processor.set_arpeggiator_parameter("tempo", tempo)
+        self.arpeggiator.set_tempo(tempo)
         
     def set_pattern(self, pattern: str):
         """Set arpeggiator pattern."""
-        self.audio_processor.set_arpeggiator_parameter("pattern", pattern)
+        self.arpeggiator.set_pattern(pattern)
         
     def set_synth(self, synth: str):
         """Set arpeggiator synth type."""
-        self.audio_processor.set_arpeggiator_parameter("synth", synth)
+        self.arpeggiator.set_synth(synth)
         
     def set_duration(self, duration: float):
         """Set arpeggiator duration."""
-        self.audio_processor.set_arpeggiator_parameter("duration", duration)
+        self.arpeggiator.set_duration(duration)
         
     def demo_mode(self):
         """Run arpeggiator demo."""
-        self.audio_processor.demo_mode()
+        self.arpeggiator.demo_mode()
         
     def test_audio(self):
         """Test audio system."""
-        self.audio_processor.test_audio()
+        self.arpeggiator.test_audio_system()
         
     def list_patterns(self):
         """List available patterns."""
-        # Get patterns from the arpeggio engine
-        patterns = list(self.audio_processor.arpeggio_engine.patterns.keys())
+        patterns = list(self.arpeggiator.arpeggio_engine.patterns.keys())
         print("Available patterns:", ", ".join(patterns))
         
     def list_synths(self):
         """List available synths."""
-        # Get synths from the synth engine
-        synths = list(self.audio_processor.synth_engine.synth_types.keys())
+        synths = list(self.arpeggiator.synth_engine.synth_types.keys())
         print("Available synths:", ", ".join(synths))
         
     def get_help(self) -> str:
@@ -109,39 +133,70 @@ Arpeggiator Commands:
 class DelayController(EffectController):
     """Controller for delay effects."""
     
-    def __init__(self, delay_type: str, audio_processor: AudioProcessor):
-        super().__init__(f"{delay_type}", audio_processor)
+    def __init__(self, delay_type: str = "basic"):
+        super().__init__(f"Delay ({delay_type.title()})")
         self.delay_type = delay_type
+        self.delay_effect = None
+        self.sample_rate = 44100
+        self._create_delay_effect()
+        
+    def _create_delay_effect(self):
+        """Create the appropriate delay effect."""
+        if self.delay_type == "basic":
+            self.delay_effect = BasicDelay(sample_rate=self.sample_rate)
+        elif self.delay_type == "tape":
+            self.delay_effect = TapeDelay(sample_rate=self.sample_rate)
+        elif self.delay_type == "multi":
+            self.delay_effect = MultiTapDelay(sample_rate=self.sample_rate)
+        elif self.delay_type == "tempo":
+            self.delay_effect = TempoSyncedDelay(sample_rate=self.sample_rate)
+        elif self.delay_type == "stereo":
+            self.delay_effect = StereoDelay(sample_rate=self.sample_rate)
+        else:
+            self.delay_effect = BasicDelay(sample_rate=self.sample_rate)
+            
+    def get_status(self) -> Dict[str, Any]:
+        """Get delay effect status."""
+        status = super().get_status()
+        if self.delay_effect:
+            status.update(self.delay_effect.get_parameters())
+            status["info"] = self.delay_effect.get_info()
+        return status
         
     def set_delay_time(self, delay_time: float):
         """Set delay time."""
-        self.audio_processor.set_delay_parameter(self.name, "delay_time", delay_time)
-        
+        if self.delay_effect:
+            self.delay_effect.set_delay_time(delay_time)
+            
     def set_feedback(self, feedback: float):
         """Set feedback amount."""
-        self.audio_processor.set_delay_parameter(self.name, "feedback", feedback)
-        
+        if self.delay_effect:
+            self.delay_effect.set_feedback(feedback)
+            
     def set_wet_mix(self, wet_mix: float):
         """Set wet/dry mix."""
-        self.audio_processor.set_delay_parameter(self.name, "wet_mix", wet_mix)
-        
+        if self.delay_effect:
+            self.delay_effect.set_wet_mix(wet_mix)
+            
     def set_tape_parameters(self, **kwargs):
         """Set tape-specific parameters."""
-        for param, value in kwargs.items():
-            self.audio_processor.set_delay_parameter(self.name, param, value)
+        if hasattr(self.delay_effect, 'set_tape_parameters'):
+            self.delay_effect.set_tape_parameters(**kwargs)
             
     def sync_taps_to_tempo(self, bpm: float, divisions: list = None):
         """Sync multi-tap delay to tempo."""
-        self.audio_processor.set_delay_parameter(self.name, "sync_tempo", bpm)
-        
-    def set_tempo(self, tempo: float):
+        if hasattr(self.delay_effect, 'sync_taps_to_tempo'):
+            self.delay_effect.sync_taps_to_tempo(bpm, divisions)
+            
+    def set_tempo(self, bpm: float):
         """Set tempo for tempo-synced delay."""
-        self.audio_processor.set_delay_parameter(self.name, "tempo", tempo)
-        
+        if hasattr(self.delay_effect, 'set_tempo'):
+            self.delay_effect.set_tempo(bpm)
+            
     def set_stereo_parameters(self, **kwargs):
         """Set stereo-specific parameters."""
-        for param, value in kwargs.items():
-            self.audio_processor.set_delay_parameter(self.name, param, value)
+        if hasattr(self.delay_effect, 'set_stereo_parameters'):
+            self.delay_effect.set_stereo_parameters(**kwargs)
             
     def get_help(self) -> str:
         """Get delay effect help."""
@@ -191,30 +246,15 @@ class EnhancedInteractiveCLI:
     """Enhanced CLI supporting multiple effects."""
     
     def __init__(self):
-        # Initialize audio processor
-        config = Config()
-        self.audio_processor = AudioProcessor(config)
-        
-        # Create effect controllers
         self.effects = {
-            "arpeggiator": ArpeggiatorController(self.audio_processor),
-            "basic_delay": DelayController("basic_delay", self.audio_processor),
-            "tape_delay": DelayController("tape_delay", self.audio_processor),
-            "multi_delay": DelayController("multi_delay", self.audio_processor),
-            "tempo_delay": DelayController("tempo_delay", self.audio_processor),
-            "stereo_delay": DelayController("stereo_delay", self.audio_processor)
+            "arpeggiator": ArpeggiatorController(),
+            "basic_delay": DelayController("basic"),
+            "tape_delay": DelayController("tape"),
+            "multi_delay": DelayController("multi"),
+            "tempo_delay": DelayController("tempo"),
+            "stereo_delay": DelayController("stereo")
         }
         self.current_effect = "arpeggiator"
-        
-        # Start audio processing
-        self.audio_thread = None
-        self.start_audio_processing()
-        
-    def start_audio_processing(self):
-        """Start audio processing in background thread."""
-        self.audio_thread = threading.Thread(target=self.audio_processor.start_audio, daemon=True)
-        self.audio_thread.start()
-        print("Audio processing started in background")
         
     def get_current_effect(self) -> EffectController:
         """Get the currently selected effect."""
@@ -326,11 +366,10 @@ Type 'select <effect>' to choose an effect, then use 'help' for effect-specific 
         except KeyboardInterrupt:
             print("\nInterrupted.")
         finally:
-            # Stop all effects and audio
+            # Stop all effects
             for effect in self.effects.values():
                 if effect.is_active:
                     effect.stop()
-            self.audio_processor.stop_audio()
             print("Goodbye.")
             
     def _handle_effect_command(self, cmd: str, args: list):
@@ -447,3 +486,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
