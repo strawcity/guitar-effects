@@ -23,22 +23,30 @@ def analyze_audio(audio_data, sample_rate=48000):
     positive_freqs = frequencies[:len(frequencies)//2]
     magnitudes = np.abs(fft_result[:len(fft_result)//2])
     
-    # Find peaks (local maxima)
+    # Find peaks (local maxima) with better filtering
     peaks = []
     for i in range(1, len(magnitudes)-1):
         if magnitudes[i] > magnitudes[i-1] and magnitudes[i] > magnitudes[i+1]:
-            if magnitudes[i] > np.max(magnitudes) * 0.1:  # Only significant peaks
+            # Only peaks above noise threshold
+            if magnitudes[i] > np.max(magnitudes) * 0.05:
                 peaks.append((positive_freqs[i], magnitudes[i]))
     
-    # Sort peaks by magnitude
-    peaks.sort(key=lambda x: x[1], reverse=True)
+    # Filter peaks to only include musical frequencies
+    musical_peaks = []
+    for freq, magnitude in peaks:
+        # Only include frequencies that could be musical notes
+        if freq >= 80 and freq <= 1200:  # Guitar range (E2 to E6)
+            musical_peaks.append((freq, magnitude))
     
-    return peaks, positive_freqs, magnitudes
+    # Sort peaks by magnitude
+    musical_peaks.sort(key=lambda x: x[1], reverse=True)
+    
+    return musical_peaks, positive_freqs, magnitudes
 
 def frequency_to_note(freq):
-    """Convert frequency to musical note"""
+    """Convert frequency to musical note with tuning accuracy"""
     if freq <= 0:
-        return "Unknown"
+        return "Unknown", 0
     
     # A4 = 440 Hz
     a4 = 440.0
@@ -55,9 +63,39 @@ def frequency_to_note(freq):
     note_index = int(semitones % 12)
     
     if 0 <= note_index < len(note_names):
-        return f"{note_names[note_index]}{octave}"
+        note_name = f"{note_names[note_index]}{octave}"
+        
+        # Calculate cents deviation from perfect tuning
+        perfect_freq = c0 * (2 ** (semitones))
+        cents_off = 1200 * np.log2(freq / perfect_freq)
+        
+        return note_name, cents_off
     else:
-        return "Unknown"
+        return "Unknown", 0
+
+def get_guitar_string_info(freq):
+    """Get information about which guitar string could produce this frequency"""
+    # Standard guitar tuning (E2, A2, D3, G3, B3, E4)
+    string_frequencies = {
+        'E2': 82.41,   # 6th string (thickest)
+        'A2': 110.00,  # 5th string
+        'D3': 146.83,  # 4th string
+        'G3': 196.00,  # 3rd string
+        'B3': 246.94,  # 2nd string
+        'E4': 329.63   # 1st string (thinnest)
+    }
+    
+    # Find closest string
+    closest_string = None
+    min_diff = float('inf')
+    
+    for string, string_freq in string_frequencies.items():
+        diff = abs(freq - string_freq)
+        if diff < min_diff:
+            min_diff = diff
+            closest_string = string
+    
+    return closest_string, string_frequencies.get(closest_string, 0)
 
 def audio_callback(indata, outdata, frames, time, status):
     """Audio callback for testing"""
@@ -82,11 +120,26 @@ def audio_callback(indata, outdata, frames, time, status):
             # Analyze frequency content
             peaks, freqs, mags = analyze_audio(audio_data)
             
-            print("🔍 Top frequency peaks:")
-            for i, (freq, magnitude) in enumerate(peaks[:10]):  # Show top 10 peaks
-                note = frequency_to_note(freq)
+            print("🔍 Top musical frequency peaks:")
+            for i, (freq, magnitude) in enumerate(peaks[:8]):  # Show top 8 peaks
+                note, cents_off = frequency_to_note(freq)
                 normalized_mag = magnitude / np.max(mags)
+                
+                # Color code tuning accuracy
+                if abs(cents_off) < 10:
+                    tuning_status = "✅ In tune"
+                elif abs(cents_off) < 25:
+                    tuning_status = "⚠️  Slightly off"
+                else:
+                    tuning_status = "❌ Out of tune"
+                
+                # Get guitar string info
+                string_info, expected_freq = get_guitar_string_info(freq)
+                
                 print(f"   {i+1:2d}. {freq:6.1f} Hz -> {note:4s} (strength: {normalized_mag:.3f})")
+                print(f"       Tuning: {cents_off:+6.1f} cents {tuning_status}")
+                if string_info and abs(freq - expected_freq) < 50:  # Within 50 Hz
+                    print(f"       Guitar: {string_info} (expected: {expected_freq:.1f} Hz)")
             
             print("-" * 50)
     
@@ -101,6 +154,17 @@ def main():
     print("This will show the raw frequency spectrum of your guitar input.")
     print("Play a chord and watch the frequency peaks!")
     print("Press Ctrl+C to stop.")
+    print()
+    print("📚 Expected frequencies for common guitar notes:")
+    print("   Open strings:")
+    print("     E2 (6th): 82.4 Hz    A2 (5th): 110.0 Hz")
+    print("     D3 (4th): 146.8 Hz   G3 (3rd): 196.0 Hz")
+    print("     B3 (2nd): 246.9 Hz   E4 (1st): 329.6 Hz")
+    print()
+    print("   Common fretted notes:")
+    print("     C3 (5th string, 3rd fret): 130.8 Hz")
+    print("     C4 (2nd string, 1st fret): 261.6 Hz")
+    print("     G3 (6th string, 3rd fret): 196.0 Hz")
     print()
     
     try:

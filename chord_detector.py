@@ -41,6 +41,16 @@ class ChordDetector:
         }
         
         self.chromatic_scale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+        
+        # Standard guitar tuning for string identification
+        self.guitar_strings = {
+            'E2': 82.41,   # 6th string (thickest)
+            'A2': 110.00,  # 5th string
+            'D3': 146.83,  # 4th string
+            'G3': 196.00,  # 3rd string
+            'B3': 246.94,  # 2nd string
+            'E4': 329.63   # 1st string (thinnest)
+        }
     
     def detect_chord(self, audio_data):
         """Main chord detection function"""
@@ -69,7 +79,7 @@ class ChordDetector:
             return self.empty_chord_result()
     
     def find_frequencies_in_audio(self, audio_data):
-        """Extract dominant frequencies using FFT"""
+        """Extract dominant frequencies using FFT with improved filtering"""
         # Convert to numpy array and normalize
         audio_array = np.array(audio_data, dtype=np.float32)
         if len(audio_array) == 0:
@@ -86,21 +96,21 @@ class ChordDetector:
         # Create frequency bins
         frequencies = np.fft.fftfreq(len(fft_result), 1/self.sample_rate)
         
-        # Only keep positive frequencies up to guitar range (80-2000 Hz)
-        mask = (frequencies > 80) & (frequencies < 2000)
+        # Only keep positive frequencies in guitar range (80-1200 Hz for better accuracy)
+        mask = (frequencies > 80) & (frequencies < 1200)
         guitar_frequencies = frequencies[mask]
         guitar_magnitudes = magnitude[mask]
         
         if len(guitar_magnitudes) == 0:
             return []
         
-        # Find peaks in the spectrum - more sensitive for testing
-        threshold = np.max(guitar_magnitudes) * 0.05  # 5% of maximum for better detection
+        # Find peaks with improved filtering
+        threshold = np.max(guitar_magnitudes) * 0.05  # 5% of maximum
         peaks, properties = signal.find_peaks(
             guitar_magnitudes,
             height=threshold,
-            distance=10,  # Reduced minimum separation for testing
-            prominence=threshold * 0.3  # Lower prominence requirement
+            distance=8,  # Minimum separation between peaks
+            prominence=threshold * 0.4  # Require some prominence
         )
         
         # Get peak frequencies and magnitudes
@@ -110,9 +120,9 @@ class ChordDetector:
         # Sort by magnitude (strongest first)
         sorted_indices = np.argsort(peak_magnitudes)[::-1]
         
-        # Return top 8 frequencies
+        # Return top 6 frequencies (reduced for better accuracy)
         dominant_frequencies = []
-        for i in sorted_indices[:8]:
+        for i in sorted_indices[:6]:
             dominant_frequencies.append({
                 'frequency': peak_frequencies[i],
                 'magnitude': peak_magnitudes[i]
@@ -149,7 +159,7 @@ class ChordDetector:
         return list(unique_notes.values())
     
     def find_closest_note(self, target_frequency):
-        """Find the closest musical note to a frequency"""
+        """Find the closest musical note to a frequency with guitar string info"""
         closest_match = None
         smallest_difference = float('inf')
         
@@ -166,14 +176,43 @@ class ChordDetector:
                     else:
                         cents_off = 0
                     
+                    # Identify which guitar string could produce this frequency
+                    string_info = self.identify_guitar_string(target_frequency)
+                    
                     closest_match = {
                         'note': note_name,
                         'octave': octave_index + 2,
                         'cents_off': cents_off,
-                        'frequency_difference': difference
+                        'frequency_difference': difference,
+                        'guitar_string': string_info
                     }
         
         return closest_match
+    
+    def identify_guitar_string(self, target_frequency):
+        """Identify which guitar string could produce this frequency"""
+        if target_frequency < 80 or target_frequency > 1200:
+            return None
+        
+        # Find closest string
+        closest_string = None
+        min_diff = float('inf')
+        
+        for string, string_freq in self.guitar_strings.items():
+            diff = abs(target_frequency - string_freq)
+            if diff < min_diff:
+                min_diff = diff
+                closest_string = string
+        
+        # Only return if within reasonable range (50 Hz)
+        if min_diff < 50:
+            return {
+                'string': closest_string,
+                'expected_freq': self.guitar_strings[closest_string],
+                'difference': min_diff
+            }
+        
+        return None
     
     def analyze_chord_from_notes(self, detected_notes):
         """Determine chord type from detected notes"""
