@@ -5,14 +5,16 @@ Base Effect Controller Class
 Provides the base class for all effect controllers to avoid circular imports.
 """
 
-from typing import Dict, Any
-from audio_processor import AudioProcessor
+from typing import Dict, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from audio_processor import AudioProcessor
 
 
 class EffectController:
     """Base class for effect controllers."""
     
-    def __init__(self, name: str, audio_processor: AudioProcessor):
+    def __init__(self, name: str, audio_processor: 'AudioProcessor'):
         self.name = name
         self.audio_processor = audio_processor
         self.is_active = False
