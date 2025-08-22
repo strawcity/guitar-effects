@@ -55,6 +55,7 @@ class GuitarArpeggiator:
         print(f"🎚️  Input gain: {self.input_gain}x (target level: {self.target_input_level})")
         print("🎸 Audio system optimized for low latency and performance")
         print("🎯 Professional guitar note detection using librosa")
+        print(f"💡 Current gain may be too low - try 'gain+' if chords aren't detected")
         
         # Auto-detect and configure audio devices
         self.detect_audio_devices()
@@ -183,6 +184,10 @@ class GuitarArpeggiator:
         print("   gain=5.0 : Set specific gain value")
         print("   auto : Auto-adjust gain")
         print("   status : Show current settings")
+        print("\n🎸 For best results:")
+        print("   - Strum chords clearly and firmly")
+        print("   - Adjust gain until you see levels above 0.005")
+        print("   - Use 'gain+' if signal is too weak")
         
         try:
             while self.is_running:
@@ -257,19 +262,17 @@ class GuitarArpeggiator:
                             progress = elapsed / measure_duration
                             measure_progress = f" | Measure: {progress:.1%}"
                     
-                    print(f"\r🎤 Input: {meter} | Raw: {raw_max:.4f} | Gain: {max_level:.4f} | Avg: {avg_level:.4f} | Threshold: 0.0100 | Frames: {frames}{measure_progress}", end="", flush=True)
+                    print(f"\r🎤 Input: {meter} | Raw: {raw_max:.4f} | Gain: {max_level:.4f} | Avg: {avg_level:.4f} | Threshold: 0.0050 | Frames: {frames}{measure_progress}", end="", flush=True)
                 
                 # Only process if we have valid audio data and above threshold
-                if max_level > 0.01:  # Higher threshold for guitar
+                # Lower threshold for better sensitivity to guitar signals
+                if max_level > 0.005:  # Lower threshold for guitar
                     current_time = time_module.time()
                     
                     # Check if we can start a new arpeggio
                     can_start_new = False
                     
-                    if not hasattr(self, 'arpeggio_start_time'):
-                        # First time, can start immediately
-                        can_start_new = True
-                    elif not hasattr(self, 'arpeggio_audio') or self.arpeggio_audio is None:
+                    if not hasattr(self, 'arpeggio_audio') or self.arpeggio_audio is None:
                         # No arpeggio currently playing, can start new one
                         can_start_new = True
                     else:
@@ -344,6 +347,15 @@ class GuitarArpeggiator:
                             else:
                                 print(f"⚠️  Chord detected but confidence too low ({chord_result.get('confidence', 0):.2f})")
                                 print(f"   Detected: {chord_result.get('root', 'Unknown')} {chord_result.get('quality', 'Unknown')}")
+                else:
+                    # Show when signal is too weak for chord detection
+                    if not hasattr(self, 'weak_signal_shown') or not self.weak_signal_shown:
+                        if max_level > 0.001:  # Some signal but not enough
+                            print(f"\n⚠️  Signal too weak for chord detection: {max_level:.4f} (need > 0.005)")
+                            print(f"💡 Try: gain+ (increase input gain) or strum harder")
+                            self.weak_signal_shown = True
+                        else:
+                            self.weak_signal_shown = False
                 
                 # Show when guitar signal is detected (even if not strong enough for chord detection)
                 if max_level > 0.001:  # Lower threshold for signal detection
