@@ -259,60 +259,58 @@ class GuitarArpeggiator:
                             print(f"   Quality: {chord_result['quality']}")
                             print(f"   Confidence: {chord_result['confidence']:.2f}")
                             
-                                                    # Show the detected notes with enhanced info
-                        if 'note_details' in chord_result:
-                            print(f"   Detected notes:")
-                            for note_info in chord_result['note_details']:
-                                note = note_info.get('note', 'Unknown')
-                                freq = note_info.get('frequency', 0)
-                                strength = note_info.get('strength', 0)
-                                cents_off = note_info.get('cents_off', 0)
-                                guitar_string = note_info.get('guitar_string', {})
-                                
-                                # Format tuning status
-                                if abs(cents_off) < 10:
-                                    tuning_status = "✅ In tune"
-                                elif abs(cents_off) < 25:
-                                    tuning_status = "⚠️  Slightly off"
+                            # Show the detected notes with enhanced info
+                            if 'note_details' in chord_result:
+                                print(f"   Detected notes:")
+                                for note_info in chord_result['note_details']:
+                                    note = note_info.get('note', 'Unknown')
+                                    freq = note_info.get('frequency', 0)
+                                    strength = note_info.get('strength', 0)
+                                    cents_off = note_info.get('cents_off', 0)
+                                    guitar_string = note_info.get('guitar_string', {})
+                                    
+                                    # Format tuning status
+                                    if abs(cents_off) < 10:
+                                        tuning_status = "✅ In tune"
+                                    elif abs(cents_off) < 25:
+                                        tuning_status = "⚠️  Slightly off"
+                                    else:
+                                        tuning_status = "❌ Out of tune"
+                                    
+                                    print(f"     {note}: {freq:.1f} Hz (strength: {strength:.2f}, cents: {cents_off:+.1f}) {tuning_status}")
+                                    
+                                    # Show guitar string info if available
+                                    if guitar_string and guitar_string.get('string'):
+                                        expected = guitar_string.get('expected_freq', 0)
+                                        diff = guitar_string.get('difference', 0)
+                                        print(f"       Guitar: {guitar_string['string']} (expected: {expected:.1f} Hz, diff: {diff:.1f} Hz)")
+                            
+                            # Show the chord notes
+                            if 'notes' in chord_result:
+                                print(f"   Chord notes: {chord_result['notes']}")
+                            
+                            # Update current chord if valid, above confidence threshold, AND has at least 3 notes
+                            if chord_result['confidence'] > 0.6:
+                                # Check if we have at least 3 notes for a proper chord
+                                note_count = len(chord_result.get('notes', []))
+                                if note_count >= 3:
+                                    self.last_chord_time = current_time
+                                    self.current_chord = chord_result
+                                    print(f"🎸 ✅ Chord confirmed: {chord_result['root']} {chord_result['quality']} ({note_count} notes)")
+                                    
+                                    # Generate arpeggio
+                                    self.current_arpeggio = self.arpeggio_engine.generate_arpeggio(
+                                        chord_result, self.pattern, self.tempo, self.duration
+                                    )
+                                    
+                                    # Play arpeggio in separate thread to avoid blocking
+                                    threading.Thread(target=self.play_arpeggio, daemon=True).start()
                                 else:
-                                    tuning_status = "❌ Out of tune"
-                                
-                                print(f"     {note}: {freq:.1f} Hz (strength: {strength:.2f}, cents: {cents_off:+.1f}) {tuning_status}")
-                                
-                                # Show guitar string info if available
-                                if guitar_string and guitar_string.get('string'):
-                                    expected = guitar_string.get('expected_freq', 0)
-                                    diff = guitar_string.get('difference', 0)
-                                    print(f"       Guitar: {guitar_string['string']} (expected: {expected:.1f} Hz, diff: {diff:.1f} Hz)")
-                        
-                        # Show the chord notes
-                        if 'notes' in chord_result:
-                            print(f"   Chord notes: {chord_result['notes']}")
-                        
-                                            # Update current chord if valid, above confidence threshold, AND has at least 3 notes
-                    if chord_result['valid'] and chord_result['confidence'] > 0.6:
-                        # Check if we have at least 3 notes for a proper chord
-                        note_count = len(chord_result.get('notes', []))
-                        if note_count >= 3:
-                            self.last_chord_time = current_time
-                            self.current_chord = chord_result
-                            print(f"🎸 ✅ Chord confirmed: {chord_result['root']} {chord_result['quality']} ({note_count} notes)")
-                            
-                            # Generate arpeggio
-                            self.current_arpeggio = self.arpeggio_engine.generate_arpeggio(
-                                chord_result, self.pattern, self.tempo, self.duration
-                            )
-                            
-                            # Play arpeggio in separate thread to avoid blocking
-                            threading.Thread(target=self.play_arpeggio, daemon=True).start()
-                        else:
-                            print(f"⚠️  Chord detected but only {note_count} notes - need at least 3 for arpeggio")
-                            if chord_result.get('valid'):
+                                    print(f"⚠️  Chord detected but only {note_count} notes - need at least 3 for arpeggio")
+                                    print(f"   Detected: {chord_result.get('root', 'Unknown')} {chord_result.get('quality', 'Unknown')}")
+                            else:
+                                print(f"⚠️  Chord detected but confidence too low ({chord_result.get('confidence', 0):.2f})")
                                 print(f"   Detected: {chord_result.get('root', 'Unknown')} {chord_result.get('quality', 'Unknown')}")
-                    else:
-                        print(f"⚠️  Chord detected but confidence too low ({chord_result.get('confidence', 0):.2f})")
-                        if chord_result.get('valid'):
-                            print(f"   Detected: {chord_result.get('root', 'Unknown')} {chord_result.get('quality', 'Unknown')}")
                 
                 # Show when guitar signal is detected (even if not strong enough for chord detection)
                 if max_level > 0.001:  # Lower threshold for signal detection
