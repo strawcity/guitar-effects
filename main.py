@@ -245,15 +245,35 @@ class GuitarArpeggiator:
                             can_start_new = True
                     
                     if can_start_new:
-                        # Detect chord
+                        # Detect chord with detailed debugging
                         chord_result = self.chord_detector.detect_chord(audio_data)
                         
-                        # Update current chord if valid
+                        # Always show the raw detection results for debugging
+                        if chord_result['valid']:
+                            print(f"\n🔍 Raw chord detection results:")
+                            print(f"   Root: {chord_result['root']}")
+                            print(f"   Quality: {chord_result['quality']}")
+                            print(f"   Confidence: {chord_result['confidence']:.2f}")
+                            
+                            # Show the detected notes
+                            if 'note_details' in chord_result:
+                                print(f"   Detected notes:")
+                                for note_info in chord_result['note_details']:
+                                    note = note_info.get('note', 'Unknown')
+                                    freq = note_info.get('frequency', 0)
+                                    strength = note_info.get('strength', 0)
+                                    cents_off = note_info.get('cents_off', 0)
+                                    print(f"     {note}: {freq:.1f} Hz (strength: {strength:.2f}, cents: {cents_off:.1f})")
+                            
+                            # Show the chord notes
+                            if 'notes' in chord_result:
+                                print(f"   Chord notes: {chord_result['notes']}")
+                        
+                        # Update current chord if valid and above confidence threshold
                         if chord_result['valid'] and chord_result['confidence'] > 0.6:
                             self.last_chord_time = current_time
                             self.current_chord = chord_result
-                            print(f"\n🎸 Detected: {chord_result['root']} {chord_result['quality']} "
-                                  f"(confidence: {chord_result['confidence']:.2f})")
+                            print(f"🎸 ✅ Chord confirmed: {chord_result['root']} {chord_result['quality']}")
                             
                             # Generate arpeggio
                             self.current_arpeggio = self.arpeggio_engine.generate_arpeggio(
@@ -262,6 +282,10 @@ class GuitarArpeggiator:
                             
                             # Play arpeggio in separate thread to avoid blocking
                             threading.Thread(target=self.play_arpeggio, daemon=True).start()
+                        else:
+                            print(f"⚠️  Chord detected but confidence too low ({chord_result.get('confidence', 0):.2f})")
+                            if chord_result.get('valid'):
+                                print(f"   Detected: {chord_result.get('root', 'Unknown')} {chord_result.get('quality', 'Unknown')}")
                 
                 # Show when guitar signal is detected (even if not strong enough for chord detection)
                 if max_level > 0.001:  # Lower threshold for signal detection
