@@ -7,7 +7,7 @@ Controller class for the guitar synth effect that integrates with the interactiv
 
 from typing import Dict, Any
 from .guitar_synth import GuitarSynth
-from interactive_cli import EffectController
+from effect_controller import EffectController
 
 
 class GuitarSynthController(EffectController):
