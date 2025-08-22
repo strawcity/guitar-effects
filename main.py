@@ -29,19 +29,20 @@ class GuitarArpeggiator:
         self.buffer_max_size = 5  # Maximum number of chunks to buffer
         
         # Settings
-        self.tempo = self.config.default_tempo
+        self.tempo = 100  # Default to 100 BPM for consistent timing
         self.pattern = self.config.default_pattern
         self.synth_type = self.config.default_synth
-        self.duration = 2.0
+        self.duration = 2.4  # Full measure at 100 BPM (4 beats × 0.6 seconds)
         
         # Auto-detect audio devices
         self.input_device = None
         self.output_device = None
         
         print("Guitar Arpeggiator initialized!")
-        print(f"Default tempo: {self.tempo} BPM")
+        print(f"Default tempo: {self.tempo} BPM (full measure: {self.duration:.1f}s)")
         print(f"Default pattern: {self.pattern}")
         print(f"Default synth: {self.synth_type}")
+        print("🎵 Arpeggios will play for full musical measures - no new chords until measure completes!")
         
         # Auto-detect and configure audio devices
         self.detect_audio_devices()
@@ -212,14 +213,38 @@ class GuitarArpeggiator:
                 self.callback_count += 1
                 
                 if self.callback_count % 5 == 0:  # Update every 5th callback
-                    # Clear line and show meter
-                    print(f"\r🎤 Input: {meter} | Max: {max_level:.4f} | Avg: {avg_level:.4f} | Threshold: 0.0100 | Frames: {frames}", end="", flush=True)
+                    # Show meter and measure progress
+                    measure_progress = ""
+                    if hasattr(self, 'arpeggio_start_time') and hasattr(self, 'arpeggio_audio') and self.arpeggio_audio is not None:
+                        current_time = time_module.time()
+                        measure_duration = 60.0 / self.tempo * 4  # 4 beats per measure
+                        elapsed = current_time - self.arpeggio_start_time
+                        if elapsed < measure_duration:
+                            progress = elapsed / measure_duration
+                            measure_progress = f" | Measure: {progress:.1%}"
+                    
+                    print(f"\r🎤 Input: {meter} | Max: {max_level:.4f} | Avg: {avg_level:.4f} | Threshold: 0.0100 | Frames: {frames}{measure_progress}", end="", flush=True)
                 
                 # Only process if we have valid audio data and above threshold
                 if max_level > 0.01:  # Higher threshold for guitar
-                    # Add cooldown to prevent excessive processing
                     current_time = time_module.time()
-                    if not hasattr(self, 'last_chord_time') or current_time - getattr(self, 'last_chord_time', 0) > 1.0:
+                    
+                    # Check if we can start a new arpeggio
+                    can_start_new = False
+                    
+                    if not hasattr(self, 'arpeggio_start_time'):
+                        # First time, can start immediately
+                        can_start_new = True
+                    elif not hasattr(self, 'arpeggio_audio') or self.arpeggio_audio is None:
+                        # No arpeggio currently playing, can start new one
+                        can_start_new = True
+                    else:
+                        # Check if current arpeggio has finished its measure
+                        measure_duration = 60.0 / self.tempo * 4  # 4 beats per measure
+                        if current_time - self.arpeggio_start_time >= measure_duration:
+                            can_start_new = True
+                    
+                    if can_start_new:
                         # Detect chord
                         chord_result = self.chord_detector.detect_chord(audio_data)
                         
@@ -368,7 +393,8 @@ class GuitarArpeggiator:
                 self.arpeggio_audio = audio_data
                 self.arpeggio_position = 0
                 self.arpeggio_length = len(audio_data)
-                print(f"🎵 Arpeggio ready: {len(audio_data)} samples")
+                self.arpeggio_start_time = time_module.time()  # Record when arpeggio started
+                print(f"🎵 Arpeggio started: {len(audio_data)} samples, duration: {self.duration:.1f}s")
                 
         except Exception as e:
             print(f"Playback error: {e}")
