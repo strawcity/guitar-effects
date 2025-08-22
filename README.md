@@ -347,16 +347,14 @@ This will test:
 output audio through the Scarlett 2i2's monitor outputs:
 
 1. **Connect your headphones** to the Scarlett 2i2's monitor jack
-2. **Set the Scarlett 2i2 Direct Monitor** to ON (this routes input directly to
-   monitor)
-3. **The arpeggiator output** will be mixed with your guitar input and sent to
-   the monitor outputs
-4. **You'll hear both** your guitar (pass-through) and the generated arpeggios
+2. **Set the Scarlett 2i2 Direct Monitor** to OFF (no pass-through needed)
+3. **The arpeggiator output** will be sent to the monitor outputs
+4. **You'll hear** the generated arpeggios when you strum a chord
 
 **Audio Flow:**
 
 ```
-Guitar → Scarlett 2i2 Input → Raspberry Pi → Arpeggiator → Scarlett 2i2 Output → Monitor/Headphones
+Guitar → Scarlett 2i2 Input → Raspberry Pi → Chord Detection → Arpeggio Generation → Scarlett 2i2 Output → Monitor/Headphones
 ```
 
 ### Platform-Specific Audio Configuration
@@ -399,7 +397,7 @@ For best results:
 ### Output Device Setup
 
 - **System Volume**: Adjust system volume as needed
-- **Audio Routing**: Audio pass-through enabled for monitoring
+- **Audio Routing**: Clean arpeggio output only (no pass-through)
 - **Latency**: Platform-optimized buffer sizes for stability vs. performance
 
 ## Configuration

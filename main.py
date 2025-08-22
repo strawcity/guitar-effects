@@ -53,6 +53,7 @@ class GuitarArpeggiator:
         print("🎵 Arpeggios will play for full musical measures - no new chords until measure completes!")
         print("🎸 Arpeggios only trigger with 3+ notes detected (filters out single notes and power chords)")
         print(f"🎚️  Input gain: {self.input_gain}x (target level: {self.target_input_level})")
+        print("🎸 Audio system optimized for low latency and performance")
         
         # Auto-detect and configure audio devices
         self.detect_audio_devices()
@@ -174,6 +175,7 @@ class GuitarArpeggiator:
         self.audio_thread.start()
         
         print("Arpeggiator started! Press Ctrl+C to stop.")
+        print("🎸 Audio system optimized for low latency")
         print("💡 Use keyboard commands to control gain:")
         print("   gain+ / gain- : Adjust gain by 0.5x")
         print("   gain++ / gain-- : Adjust gain by 1.0x")
@@ -372,31 +374,10 @@ class GuitarArpeggiator:
                 if self.no_data_count % 50 == 0:  # Show every 50th occurrence
                     print(f"\n⚠️  No input data received (count: {self.no_data_count})")
             
-            # Output mixed audio: pass-through + arpeggio
+            # Output mixed audio: arpeggio only
             if outdata is not None:
-                if indata is not None:
-                    # Start with pass-through audio (guitar input)
-                    # Handle different input shapes - ensure we get mono audio
-                    if indata.ndim == 2:
-                        # If input is 2D, take the first channel or average across channels
-                        if indata.shape[1] == 1:
-                            # Single channel, 2D format
-                            input_audio = indata[:, 0]
-                        else:
-                            # Multiple channels, average them
-                            input_audio = np.mean(indata, axis=1)
-                    else:
-                        # 1D input
-                        input_audio = indata
-                    
-                    gain = 2.0  # Increase volume for better monitoring
-                    # Ensure output is the right shape
-                    if outdata.ndim == 2:
-                        outdata[:, 0] = np.clip(input_audio * gain, -1.0, 1.0)
-                    else:
-                        outdata[:] = np.clip(input_audio * gain, -1.0, 1.0)
-                else:
-                    outdata.fill(0)
+                # No pass-through - start with silence
+                outdata.fill(0)
                 
                 # Mix in arpeggio audio if available
                 if hasattr(self, 'arpeggio_audio') and self.arpeggio_audio is not None:
@@ -408,7 +389,7 @@ class GuitarArpeggiator:
                             # Get the arpeggio audio for this frame
                             arpeggio_frame = self.arpeggio_audio[self.arpeggio_position:self.arpeggio_position + samples_to_output]
                             
-                            # Mix with pass-through (arpeggio at 0.7 volume)
+                            # Mix arpeggio audio (at 0.7 volume)
                             arpeggio_gain = 0.7
                             
                             # Ensure shapes match for mixing
@@ -454,7 +435,7 @@ class GuitarArpeggiator:
                 print(f"🎵 Optimizing sample rate: {self.config.sample_rate} → {optimal_sample_rate} Hz")
             
             with sd.Stream(
-                channels=(1, 1),  # Input and output for pass-through
+                channels=(1, 1),  # Input and output for arpeggio generation
                 samplerate=optimal_sample_rate,
                 blocksize=4096,  # Larger buffer for better frequency resolution
                 dtype=np.float32,
@@ -463,7 +444,7 @@ class GuitarArpeggiator:
                 device=(self.input_device, self.output_device)  # Use auto-detected devices
             ) as stream:
                 print("Audio stream opened successfully!")
-                print("Audio pass-through enabled - you should hear your guitar!")
+                print("🎵 Arpeggio system ready - strum a chord to hear arpeggios!")
                 
                 # Keep the stream alive
                 while self.is_running:
