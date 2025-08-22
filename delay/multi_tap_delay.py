@@ -108,11 +108,14 @@ class MultiTapDelay(BaseDelay):
             level: Output level (0.0 to 1.0)
             pan: Stereo panning (-1.0 = left, 0.0 = center, 1.0 = right)
         """
+        # Ensure minimum delay time
+        delay_time = max(delay_time, 0.001)  # Minimum 1ms delay
+        
         tap = DelayTap(delay_time, level, pan)
         self.taps.append(tap)
         
         # Create buffer for this tap
-        tap_buffer_size = int(delay_time * self.sample_rate)
+        tap_buffer_size = max(1, int(delay_time * self.sample_rate))
         tap_buffer = np.zeros(tap_buffer_size)
         self.tap_buffers.append(tap_buffer)
         
@@ -154,7 +157,9 @@ class MultiTapDelay(BaseDelay):
             
             # If delay time changed, resize buffer
             if delay_time is not None:
-                new_buffer_size = int(delay_time * self.sample_rate)
+                # Ensure minimum delay time
+                delay_time = max(delay_time, 0.001)  # Minimum 1ms delay
+                new_buffer_size = max(1, int(delay_time * self.sample_rate))
                 if new_buffer_size != len(self.tap_buffers[tap_index]):
                     self.tap_buffers[tap_index] = np.zeros(new_buffer_size)
                     self.tap_write_indices[tap_index] = 0
@@ -275,7 +280,11 @@ class MultiTapDelay(BaseDelay):
         base_params.update({
             'num_taps': len(self.taps),
             'stereo_output': self.stereo_output,
-            'taps': [tap.get_parameters() for tap in self.taps]
+            'taps': [{
+                'delay_time': tap.delay_time,
+                'level': tap.level,
+                'pan': tap.pan
+            } for tap in self.taps]
         })
         return base_params
         

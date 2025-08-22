@@ -183,6 +183,11 @@ class AudioProcessor:
                         left_output, right_output = effect.process_mono_to_stereo(output_audio)
                         # Convert back to mono for now (mix L+R)
                         output_audio = (left_output + right_output) * 0.5
+                    elif hasattr(effect, 'stereo_output') and effect.stereo_output:
+                        # Multi-tap delay returns stereo output
+                        left_output, right_output = effect.process_buffer(output_audio)
+                        # Convert back to mono for now (mix L+R)
+                        output_audio = (left_output + right_output) * 0.5
                     else:
                         # Mono delay
                         output_audio = effect.process_buffer(output_audio)
