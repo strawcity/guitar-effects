@@ -151,8 +151,7 @@ class GuitarArpeggiator:
             print("Arpeggiator is already running!")
             return
         
-        # Setup audio pass-through
-        passthrough_ok = self.setup_audio_passthrough()
+
         
         self.is_running = True
         self.audio_thread = threading.Thread(target=self.audio_loop)
