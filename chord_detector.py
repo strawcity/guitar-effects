@@ -2,7 +2,7 @@ import numpy as np
 from scipy import signal
 import math
 import time
-from guitar_tuner import GuitarTuner
+from professional_guitar_detector import ProfessionalGuitarDetector
 
 class ChordDetector:
     def __init__(self, config):
@@ -10,10 +10,10 @@ class ChordDetector:
         self.sample_rate = config.sample_rate
         self.chunk_size = config.chunk_size
         
-        # Initialize the guitar tuner for accurate note detection
+        # Initialize the professional guitar detector for accurate note detection
         # Use optimized sample rate for better frequency resolution
         optimal_sample_rate = min(self.sample_rate, 44100)
-        self.guitar_tuner = GuitarTuner(optimal_sample_rate)
+        self.guitar_detector = ProfessionalGuitarDetector(optimal_sample_rate)
         
         # Note frequencies for all 12 chromatic notes across guitar range
         self.note_frequencies = {
@@ -85,34 +85,32 @@ class ChordDetector:
             return self.empty_chord_result()
     
     def find_frequencies_in_audio(self, audio_data):
-        """Extract dominant frequencies using guitar tuner algorithm"""
+        """Extract dominant frequencies using professional guitar detector"""
         # Convert to numpy array and normalize
         audio_array = np.array(audio_data, dtype=np.float32)
         if len(audio_array) == 0:
             return []
         
-        # Use the guitar tuner to detect notes
-        detected_notes = []
-        
-        # Analyze the audio in chunks for better accuracy
-        chunk_size = min(2048, len(audio_array))
-        if len(audio_array) >= chunk_size:
-            # Use the guitar tuner's harmonic analysis
-            tuner_result = self.guitar_tuner.detect_note(audio_array)
+        try:
+            # Use the professional guitar detector for accurate note detection
+            detected_notes = self.guitar_detector.detect_notes(audio_array)
             
-            if tuner_result:
-                # Convert tuner result to frequency data format
-                detected_notes.append({
-                    'frequency': tuner_result['frequency'],
-                    'magnitude': tuner_result['total_strength'],
-                    'note_info': tuner_result
-                })
+            if detected_notes:
+                # Convert detector results to frequency data format
+                frequency_data = []
+                for note in detected_notes:
+                    frequency_data.append({
+                        'frequency': note['frequency'],
+                        'magnitude': note['magnitude'],
+                        'note_info': note
+                    })
+                return frequency_data
+            
+        except Exception as e:
+            print(f"⚠️  Professional guitar detector failed: {e}")
         
-        # If guitar tuner didn't work, fall back to basic FFT
-        if not detected_notes:
-            detected_notes = self._fallback_fft_analysis(audio_array)
-        
-        return detected_notes
+        # Fallback to basic FFT if detector fails
+        return self._fallback_fft_analysis(audio_array)
     
     def _fallback_fft_analysis(self, audio_array):
         """Fallback to basic FFT if guitar tuner fails"""
@@ -162,25 +160,25 @@ class ChordDetector:
         return dominant_frequencies
     
     def frequencies_to_notes(self, frequency_data):
-        """Convert frequencies to musical note names using guitar tuner when available"""
+        """Convert frequencies to musical note names using professional detector when available"""
         detected_notes = []
         
         for freq_info in frequency_data:
             frequency = freq_info['frequency']
             magnitude = freq_info['magnitude']
             
-            # Check if we have guitar tuner results
+            # Check if we have professional detector results
             if 'note_info' in freq_info and freq_info['note_info']:
-                tuner_result = freq_info['note_info']
+                detector_result = freq_info['note_info']
                 detected_notes.append({
-                    'note': tuner_result['note'],
-                    'octave': tuner_result['octave'],
+                    'note': detector_result['note'],
+                    'octave': detector_result['octave'],
                     'frequency': frequency,
                     'strength': magnitude,
-                    'cents_off': tuner_result['cents_off'],
-                    'confidence': tuner_result['confidence'],
-                    'harmonic_count': tuner_result['harmonic_count'],
-                    'guitar_string': self.identify_guitar_string(frequency)
+                    'cents_off': detector_result['cents_off'],
+                    'confidence': 0.8,  # Professional detector confidence
+                    'harmonic_count': 1,  # Simplified for now
+                    'guitar_string': detector_result.get('guitar_string', self.identify_guitar_string(frequency))
                 })
             else:
                 # Fall back to basic note detection

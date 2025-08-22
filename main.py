@@ -54,6 +54,7 @@ class GuitarArpeggiator:
         print("🎸 Arpeggios only trigger with 3+ notes detected (filters out single notes and power chords)")
         print(f"🎚️  Input gain: {self.input_gain}x (target level: {self.target_input_level})")
         print("🎸 Audio system optimized for low latency and performance")
+        print("🎯 Professional guitar note detection using librosa")
         
         # Auto-detect and configure audio devices
         self.detect_audio_devices()

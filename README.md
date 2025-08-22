@@ -475,10 +475,12 @@ This standalone tool lets you:
 
 ### Chord Detection
 
-- Uses FFT with Hann windowing for spectral analysis
-- Peak detection with configurable thresholds
-- Musical note matching with cents accuracy
-- Chord pattern recognition for 11 common chord types
+- **Professional-grade detection** using librosa audio analysis library
+- **Guitar-optimized algorithms** for accurate frequency detection
+- **Harmonic analysis** with harmonic-percussive separation
+- **Pitch tracking** with real-time frequency analysis
+- **Cents accuracy** for precise tuning detection
+- **Chord pattern recognition** for 11 common chord types
 
 ### Audio Processing
 
