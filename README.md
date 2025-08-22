@@ -74,12 +74,19 @@ If running on Raspberry Pi, additional setup is required:
 ```bash
 # Install system dependencies
 sudo apt-get update
-sudo apt-get install -y python3-pip python3-dev python3-venv
+sudo apt-get install -y python3-pip python3-dev python3-venv python3-full
 sudo apt-get install -y libasound2-dev portaudio19-dev libportaudio2 libportaudiocpp0
 sudo apt-get install -y libffi-dev libssl-dev
 
-# Install GPIO library
+# Create and activate virtual environment (required for newer Pi OS versions)
+python3 -m venv ~/guitar-arpeggiator-env
+source ~/guitar-arpeggiator-env/bin/activate
+
+# Install GPIO library in virtual environment
 pip install RPi.GPIO
+
+# Install project dependencies
+pip install -r requirements.txt
 
 # Add user to audio group
 sudo usermod -a -G audio $USER
@@ -87,6 +94,12 @@ sudo usermod -a -G audio $USER
 # Reboot to apply changes
 sudo reboot
 ```
+
+**Important Note for Raspberry Pi OS Bookworm+**: Newer Pi OS versions use an
+"externally managed environment" that prevents global Python package
+installation. You **must** use a virtual environment. If you get an
+"externally-managed-environment" error, follow the virtual environment setup
+above.
 
 ## Platform-Specific Features
 
@@ -464,11 +477,25 @@ self.audio_interface_pins = {'mute': 24, 'volume_up': 25, 'volume_down': 26}
 
 #### Raspberry Pi Specific
 
-1. **GPIO import error**: Install RPi.GPIO with `pip install RPi.GPIO`
-2. **Audio permission denied**: Add user to audio group and reboot
-3. **High CPU usage**: Check if performance governor is active
-4. **USB audio not working**: Ensure USB audio device is properly connected
-5. **GPIO pins not responding**: Check wiring and pin assignments
+1. **"externally-managed-environment" error**: This is common on Pi OS
+   Bookworm+. You must use a virtual environment:
+   ```bash
+   python3 -m venv ~/guitar-arpeggiator-env
+   source ~/guitar-arpeggiator-env/bin/activate
+   pip install -r requirements.txt
+   ```
+2. **GPIO import error**: Install RPi.GPIO in your virtual environment with
+   `pip install RPi.GPIO`
+3. **Audio permission denied**: Add user to audio group and reboot
+4. **High CPU usage**: Check if performance governor is active
+5. **USB audio not working**: Ensure USB audio device is properly connected
+6. **GPIO pins not responding**: Check wiring and pin assignments
+7. **ModuleNotFoundError**: Always activate your virtual environment before
+   running the project:
+   ```bash
+   source ~/guitar-arpeggiator-env/bin/activate
+   python main.py
+   ```
 
 #### Linux Specific
 
