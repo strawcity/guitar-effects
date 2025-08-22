@@ -7,6 +7,39 @@ import sounddevice as sd
 import numpy as np
 import time
 
+def test_device_capabilities(device_id):
+    """Test specific device capabilities"""
+    print(f"\n🔍 Testing device {device_id} capabilities...")
+    
+    try:
+        # Get device info
+        device_info = sd.query_devices(device_id)
+        print(f"Device: {device_info['name']}")
+        
+        # Test if device supports input
+        try:
+            input_info = sd.query_devices(device_id, 'input')
+            print(f"✅ Input supported: {input_info['name']}")
+            print(f"   Max inputs: {input_info.get('max_inputs', 'Unknown')}")
+            print(f"   Sample rates: {input_info.get('default_samplerate', 'Unknown')}")
+        except Exception as e:
+            print(f"❌ Input not supported: {e}")
+        
+        # Test if device supports output
+        try:
+            output_info = sd.query_devices(device_id, 'output')
+            print(f"✅ Output supported: {output_info['name']}")
+            print(f"   Max outputs: {output_info.get('max_outputs', 'Unknown')}")
+            print(f"   Sample rates: {output_info.get('default_samplerate', 'Unknown')}")
+        except Exception as e:
+            print(f"❌ Output not supported: {e}")
+            
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error testing device capabilities: {e}")
+        return False
+
 def test_audio_devices():
     """Test audio device detection"""
     print("🔊 Testing audio device detection...")
@@ -19,6 +52,8 @@ def test_audio_devices():
             print(f"  {i}: {device['name']}")
             print(f"     Inputs: {device.get('max_inputs', 'N/A')}, Outputs: {device.get('max_outputs', 'N/A')}")
             print(f"     Sample rates: {device.get('default_samplerate', 'N/A')}")
+            print(f"     Host API: {device.get('hostapi', 'N/A')}")
+            print(f"     Device ID: {device.get('index', 'N/A')}")
             print()
         
         # Find Scarlett 2i2
@@ -28,10 +63,15 @@ def test_audio_devices():
         for i, device in enumerate(devices):
             name = device['name'].lower()
             if 'scarlett' in name or 'focusrite' in name:
-                if device.get('max_inputs', 0) > 0:
-                    scarlett_input = i
-                if device.get('max_outputs', 0) > 0:
-                    scarlett_output = i
+                # On Raspberry Pi, USB audio devices might not show input/output counts
+                # Check if it's a hardware device (hw:X,Y format) and has a sample rate
+                if 'hw:' in device.get('name', '') and device.get('default_samplerate'):
+                    if not scarlett_input:  # Use as input if we haven't found one
+                        scarlett_input = i
+                    if not scarlett_output:  # Use as output if we haven't found one
+                        scarlett_output = i
+                    print(f"✅ Found Scarlett device: {device['name']} (ID: {i})")
+                    print(f"   Using as both input and output (USB audio devices are typically duplex)")
         
         if scarlett_input is not None:
             print(f"✅ Found Scarlett input device: {devices[scarlett_input]['name']} (ID: {scarlett_input})")
@@ -42,6 +82,18 @@ def test_audio_devices():
             print(f"✅ Found Scarlett output device: {devices[scarlett_output]['name']} (ID: {scarlett_output})")
         else:
             print("❌ No Scarlett output device found")
+        
+        # Fallback: if we found a Scarlett device but couldn't determine input/output,
+        # try to use it as both (USB audio devices are typically duplex)
+        if scarlett_input is None and scarlett_output is None:
+            for i, device in enumerate(devices):
+                name = device['name'].lower()
+                if 'scarlett' in name or 'focusrite' in name:
+                    print(f"⚠️  Found Scarlett device but couldn't determine I/O capabilities")
+                    print(f"   Trying to use device {i} as both input and output...")
+                    scarlett_input = i
+                    scarlett_output = i
+                    break
             
         return scarlett_input, scarlett_output
         
@@ -72,6 +124,7 @@ def test_audio_stream(input_device, output_device):
             
     except Exception as e:
         print(f"❌ Error creating audio stream: {e}")
+        print(f"   This might be due to device permissions or device being in use")
         return False
 
 def test_audio_playback(output_device):
@@ -111,7 +164,12 @@ def main():
         print("   1. USB connection to Raspberry Pi")
         print("   2. Device is powered on")
         print("   3. No other applications are using the audio device")
+        print("   4. USB audio fix has been applied (dwc_otg.fiq_fsm_enable=0)")
         return
+    
+    # Test device capabilities
+    print(f"\n🔍 Testing Scarlett 2i2 device capabilities...")
+    test_device_capabilities(input_device)
     
     # Test stream creation
     if not test_audio_stream(input_device, output_device):
