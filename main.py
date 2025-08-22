@@ -173,110 +173,147 @@ class GuitarArpeggiator:
         if self.audio_thread:
             self.audio_thread.join(timeout=1.0)
         
-        # Stop audio pass-through
-        self.stop_passthrough()
+
         
         print("\nArpeggiator stopped.")
     
     def audio_callback(self, indata, outdata, frames, time, status):
         """Audio callback function - called by sounddevice for each audio chunk"""
-        # Handle platform-specific audio errors gracefully
-        if status:
-            if self.config.is_mac and ('err=-50' in str(status) or 'Unknown Error' in str(status)):
-                # Ignore common macOS Core Audio errors
-                pass
-            elif self.config.is_pi and ('ALSA' in str(status) or 'PulseAudio' in str(status)):
-                # Ignore common Pi audio errors
-                pass
-            else:
-                print(f"\nAudio status: {status}")
-        
-        # Process input audio
-        if indata is not None and len(indata) > 0:
-            audio_data = indata.flatten().astype(np.float32)
+        try:
+            # Handle platform-specific audio errors gracefully
+            if status:
+                if self.config.is_mac and ('err=-50' in str(status) or 'Unknown Error' in str(status)):
+                    # Ignore common macOS Core Audio errors
+                    pass
+                elif self.config.is_pi and ('ALSA' in str(status) or 'PulseAudio' in str(status)):
+                    # Ignore common Pi audio errors
+                    pass
+                else:
+                    print(f"\nAudio status: {status}")
             
-            # Visual logging of audio levels
-            max_level = np.max(np.abs(audio_data))
-            avg_level = np.mean(np.abs(audio_data))
-            
-            # Create a visual meter (20 characters wide)
-            meter_width = 20
-            meter_fill = int((max_level * meter_width))
-            meter_fill = min(meter_fill, meter_width)
-            
-            # Create the visual meter
-            meter = "█" * meter_fill + "░" * (meter_width - meter_fill)
-            
-            # Show levels every 5th callback for more frequent updates
-            if not hasattr(self, 'callback_count'):
-                self.callback_count = 0
-            self.callback_count += 1
-            
-            if self.callback_count % 5 == 0:  # Update every 5th callback
-                # Clear line and show meter
-                print(f"\r🎤 Input: {meter} | Max: {max_level:.4f} | Avg: {avg_level:.4f} | Threshold: 0.0100 | Frames: {frames}", end="", flush=True)
-            
-            # Only process if we have valid audio data and above threshold
-            if max_level > 0.01:  # Higher threshold for guitar
-                # Add cooldown to prevent excessive processing
-                current_time = time_module.time()
-                if not hasattr(self, 'last_chord_time') or current_time - getattr(self, 'last_chord_time', 0) > 1.0:
-                    # Detect chord
-                    chord_result = self.chord_detector.detect_chord(audio_data)
-                    
-                    # Update current chord if valid
-                    if chord_result['valid'] and chord_result['confidence'] > 0.6:
-                        self.last_chord_time = current_time
-                        self.current_chord = chord_result
-                        print(f"\n🎸 Detected: {chord_result['root']} {chord_result['quality']} "
-                              f"(confidence: {chord_result['confidence']:.2f})")
-                        
-                        # LEDs removed: no visual chord feedback
-                        
-                        # Generate arpeggio
-                        self.current_arpeggio = self.arpeggio_engine.generate_arpeggio(
-                            chord_result, self.pattern, self.tempo, self.duration
-                        )
-                        
-                        # Play arpeggio in separate thread to avoid blocking
-                        threading.Thread(target=self.play_arpeggio, daemon=True).start()
-            
-            # Show when guitar signal is detected (even if not strong enough for chord detection)
-            if max_level > 0.001:  # Lower threshold for signal detection
-                if not hasattr(self, 'signal_detected'):
-                    self.signal_detected = False
+            # Process input audio
+            if indata is not None and len(indata) > 0:
+                audio_data = indata.flatten().astype(np.float32)
                 
-                if not self.signal_detected:
-                    print(f"\n🎵 Guitar signal detected! Level: {max_level:.4f}")
-                    self.signal_detected = True
+                # Visual logging of audio levels
+                max_level = np.max(np.abs(audio_data))
+                avg_level = np.mean(np.abs(audio_data))
+                
+                # Create a visual meter (20 characters wide)
+                meter_width = 20
+                meter_fill = int((max_level * meter_width))
+                meter_fill = min(meter_fill, meter_width)
+                
+                # Create the visual meter
+                meter = "█" * meter_fill + "░" * (meter_width - meter_fill)
+                
+                # Show levels every 5th callback for more frequent updates
+                if not hasattr(self, 'callback_count'):
+                    self.callback_count = 0
+                self.callback_count += 1
+                
+                if self.callback_count % 5 == 0:  # Update every 5th callback
+                    # Clear line and show meter
+                    print(f"\r🎤 Input: {meter} | Max: {max_level:.4f} | Avg: {avg_level:.4f} | Threshold: 0.0100 | Frames: {frames}", end="", flush=True)
+                
+                # Only process if we have valid audio data and above threshold
+                if max_level > 0.01:  # Higher threshold for guitar
+                    # Add cooldown to prevent excessive processing
+                    current_time = time_module.time()
+                    if not hasattr(self, 'last_chord_time') or current_time - getattr(self, 'last_chord_time', 0) > 1.0:
+                        # Detect chord
+                        chord_result = self.chord_detector.detect_chord(audio_data)
+                        
+                        # Update current chord if valid
+                        if chord_result['valid'] and chord_result['confidence'] > 0.6:
+                            self.last_chord_time = current_time
+                            self.current_chord = chord_result
+                            print(f"\n🎸 Detected: {chord_result['root']} {chord_result['quality']} "
+                                  f"(confidence: {chord_result['confidence']:.2f})")
+                            
+                            # Generate arpeggio
+                            self.current_arpeggio = self.arpeggio_engine.generate_arpeggio(
+                                chord_result, self.pattern, self.tempo, self.duration
+                            )
+                            
+                            # Play arpeggio in separate thread to avoid blocking
+                            threading.Thread(target=self.play_arpeggio, daemon=True).start()
+                
+                # Show when guitar signal is detected (even if not strong enough for chord detection)
+                if max_level > 0.001:  # Lower threshold for signal detection
+                    if not hasattr(self, 'signal_detected'):
+                        self.signal_detected = False
+                    
+                    if not self.signal_detected:
+                        print(f"\n🎵 Guitar signal detected! Level: {max_level:.4f}")
+                        self.signal_detected = True
+                else:
+                    self.signal_detected = False
             else:
-                self.signal_detected = False
-        else:
-            # Debug: show when no input data
-            if not hasattr(self, 'no_data_count'):
-                self.no_data_count = 0
-            self.no_data_count += 1
-            if self.no_data_count % 50 == 0:  # Show every 50th occurrence
-                print(f"\n⚠️  No input data received (count: {self.no_data_count})")
-        
-        # Output silence (we're only processing input)
-        if outdata is not None:
-            outdata.fill(0)
+                # Debug: show when no input data
+                if not hasattr(self, 'no_data_count'):
+                    self.no_data_count = 0
+                self.no_data_count += 1
+                if self.no_data_count % 50 == 0:  # Show every 50th occurrence
+                    print(f"\n⚠️  No input data received (count: {self.no_data_count})")
+            
+            # Output mixed audio: pass-through + arpeggio
+            if outdata is not None:
+                if indata is not None:
+                    # Start with pass-through audio (guitar input)
+                    gain = 2.0  # Increase volume for better monitoring
+                    outdata[:] = np.clip(indata * gain, -1.0, 1.0)
+                else:
+                    outdata.fill(0)
+                
+                # Mix in arpeggio audio if available
+                if hasattr(self, 'arpeggio_audio') and self.arpeggio_audio is not None:
+                    if hasattr(self, 'arpeggio_position') and hasattr(self, 'arpeggio_length'):
+                        # Calculate how many samples to output
+                        samples_to_output = min(frames, self.arpeggio_length - self.arpeggio_position)
+                        
+                        if samples_to_output > 0:
+                            # Get the arpeggio audio for this frame
+                            arpeggio_frame = self.arpeggio_audio[self.arpeggio_position:self.arpeggio_position + samples_to_output]
+                            
+                            # Mix with pass-through (arpeggio at 0.7 volume)
+                            arpeggio_gain = 0.7
+                            if len(arpeggio_frame) == frames:
+                                # Full frame
+                                outdata[:] = np.clip(outdata + arpeggio_frame * arpeggio_gain, -1.0, 1.0)
+                            else:
+                                # Partial frame (end of arpeggio)
+                                outdata[:samples_to_output] = np.clip(outdata[:samples_to_output] + arpeggio_frame * arpeggio_gain, -1.0, 1.0)
+                            
+                            # Update position
+                            self.arpeggio_position += samples_to_output
+                            
+                            # Check if arpeggio is finished
+                            if self.arpeggio_position >= self.arpeggio_length:
+                                self.arpeggio_audio = None
+                                self.arpeggio_position = 0
+                                self.arpeggio_length = 0
+                
+        except Exception as e:
+            # Catch any errors in the callback to prevent crashes
+            print(f"\n⚠️  Audio callback error: {e}")
+            if outdata is not None:
+                outdata.fill(0)
     
     def audio_loop(self):
         """Main audio processing loop using callback-based approach"""
         try:
             # Use callback-based stream for better performance
             with sd.Stream(
-                channels=1,
+                channels=(1, 1),  # Input and output for pass-through
                 samplerate=self.config.sample_rate,
-                blocksize=1024,  # Larger buffer for Scarlett 2i2
+                blocksize=2048,  # Larger buffer for Pi stability
                 dtype=np.float32,
                 latency='high',  # Use high latency for stability
                 callback=self.audio_callback,
-                device=self.input_device  # Use auto-detected input device
+                device=(self.input_device, self.output_device)  # Use auto-detected devices
             ) as stream:
-                print("Audio input stream opened successfully!")
+                print("Audio stream opened successfully!")
                 print("Audio pass-through enabled - you should hear your guitar!")
                 
                 # Keep the stream alive
@@ -299,56 +336,18 @@ class GuitarArpeggiator:
             )
             
             if len(audio_data) > 0:
-                # Play the audio
-                sd.play(audio_data, self.config.sample_rate)
-                sd.wait()  # Wait for playback to complete
+                # Store the arpeggio audio for output in the main callback
+                self.arpeggio_audio = audio_data
+                self.arpeggio_position = 0
+                self.arpeggio_length = len(audio_data)
+                print(f"🎵 Arpeggio ready: {len(audio_data)} samples")
                 
         except Exception as e:
             print(f"Playback error: {e}")
     
-    def setup_audio_passthrough(self):
-        """Setup audio pass-through for monitoring guitar input"""
-        try:
-            # Create a duplex stream (input + output) for pass-through
-            self.passthrough_stream = sd.Stream(
-                channels=(1, 1),  # 1 input, 1 output
-                samplerate=self.config.sample_rate,
-                blocksize=1024,  # Match the main stream buffer size
-                dtype=np.float32,
-                latency='high',  # Use high latency for stability
-                callback=self.passthrough_callback,
-                device=(self.input_device, self.output_device)  # Use auto-detected devices
-            )
-            self.passthrough_stream.start()
-            print("Audio pass-through enabled - you should hear your guitar!")
-            return True
-        except Exception as e:
-            print(f"Could not setup audio pass-through: {e}")
-            print("Continuing without pass-through...")
-            return False
+
     
-    def passthrough_callback(self, indata, outdata, frames, time, status):
-        """Callback for audio pass-through - routes input directly to output"""
-        if status:
-            print(f"Pass-through status: {status}")
-        
-        # Route input directly to output with gain boost
-        if indata is not None and outdata is not None:
-            # Apply gain boost for monitoring
-            gain = 2.0  # Increase volume for better monitoring
-            outdata[:] = np.clip(indata * gain, -1.0, 1.0)
-    
-    def process_audio_passthrough(self, audio_data):
-        """Process audio for pass-through - now handled by callback"""
-        # This is now handled by the passthrough_callback
-        pass
-    
-    def stop_passthrough(self):
-        """Stop audio pass-through"""
-        if hasattr(self, 'passthrough_stream') and self.passthrough_stream.active:
-            self.passthrough_stream.stop()
-            self.passthrough_stream.close()
-            print("Audio pass-through stopped")
+
     
     def set_tempo(self, tempo):
         """Set the tempo in BPM"""

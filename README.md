@@ -337,6 +337,24 @@ This will test:
 
 ## Audio Setup
 
+### Scarlett 2i2 Monitor Output Setup
+
+**For Raspberry Pi users without a headphone jack**, the system is configured to
+output audio through the Scarlett 2i2's monitor outputs:
+
+1. **Connect your headphones** to the Scarlett 2i2's monitor jack
+2. **Set the Scarlett 2i2 Direct Monitor** to ON (this routes input directly to
+   monitor)
+3. **The arpeggiator output** will be mixed with your guitar input and sent to
+   the monitor outputs
+4. **You'll hear both** your guitar (pass-through) and the generated arpeggios
+
+**Audio Flow:**
+
+```
+Guitar → Scarlett 2i2 Input → Raspberry Pi → Arpeggiator → Scarlett 2i2 Output → Monitor/Headphones
+```
+
 ### Platform-Specific Audio Configuration
 
 The system automatically detects and configures audio devices based on your
@@ -499,6 +517,10 @@ self.audio_interface_pins = {'mute': 24, 'volume_up': 25, 'volume_down': 26}
 8. **AttributeError: 'cdata' has no field 'time'**: This is a known issue with
    sounddevice on Raspberry Pi. The project has been fixed to use `time_module`
    instead of `time` to avoid conflicts with CFFI callbacks.
+9. **Segmentation fault**: This can be caused by audio threading conflicts. The
+   project has been updated to use a single audio stream with mixed output to
+   prevent crashes. If you still experience crashes, try increasing the buffer
+   size in the audio_loop method.
 
 #### Linux Specific
 
