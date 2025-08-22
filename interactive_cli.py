@@ -12,6 +12,7 @@ from typing import Optional, Dict, Any
 
 from audio_processor import AudioProcessor
 from config import Config
+from guitar_synth import GuitarSynthController
 
 
 class EffectController:
@@ -202,7 +203,8 @@ class EnhancedInteractiveCLI:
             "tape_delay": DelayController("tape_delay", self.audio_processor),
             "multi_delay": DelayController("multi_delay", self.audio_processor),
             "tempo_delay": DelayController("tempo_delay", self.audio_processor),
-            "stereo_delay": DelayController("stereo_delay", self.audio_processor)
+            "stereo_delay": DelayController("stereo_delay", self.audio_processor),
+            "guitar_synth": GuitarSynthController(self.audio_processor)
         }
         self.current_effect = "arpeggiator"
         
@@ -272,6 +274,7 @@ Available Effects:
   multi_delay                Multi-tap delay patterns
   tempo_delay                Tempo-synchronized delay
   stereo_delay               Stereo ping-pong delay
+  guitar_synth               Guitar synthesizer transformation effect
 
 Type 'select <effect>' to choose an effect, then use 'help' for effect-specific commands.
         """.strip())
@@ -434,6 +437,117 @@ Type 'select <effect>' to choose an effect, then use 'help' for effect-specific 
                 effect.list_synths()
             else:
                 print("Current effect doesn't support synths")
+                
+        # Guitar synth specific commands
+        elif cmd == "ring_freq":
+            if not args:
+                print("Usage: ring_freq <frequency_hz>")
+                return
+            try:
+                freq = float(args[0])
+                effect.set_ring_frequency(freq)
+            except ValueError:
+                print("Invalid frequency value.")
+                
+        elif cmd == "bit_depth":
+            if not args:
+                print("Usage: bit_depth <1-16>")
+                return
+            try:
+                depth = int(args[0])
+                effect.set_bit_depth(depth)
+            except ValueError:
+                print("Invalid bit depth value.")
+                
+        elif cmd == "sample_rate":
+            if not args:
+                print("Usage: sample_rate <0.1-1.0>")
+                return
+            try:
+                factor = float(args[0])
+                effect.set_sample_rate_reduction(factor)
+            except ValueError:
+                print("Invalid sample rate reduction value.")
+                
+        elif cmd == "wave_shape":
+            if not args:
+                print("Usage: wave_shape <0.0-1.0>")
+                return
+            try:
+                amount = float(args[0])
+                effect.set_wave_shape_amount(amount)
+            except ValueError:
+                print("Invalid wave shape amount value.")
+                
+        elif cmd == "filter_cutoff":
+            if not args:
+                print("Usage: filter_cutoff <frequency_hz>")
+                return
+            try:
+                cutoff = float(args[0])
+                effect.set_filter_cutoff(cutoff)
+            except ValueError:
+                print("Invalid filter cutoff value.")
+                
+        elif cmd == "filter_resonance":
+            if not args:
+                print("Usage: filter_resonance <0.0-1.0>")
+                return
+            try:
+                resonance = float(args[0])
+                effect.set_filter_resonance(resonance)
+            except ValueError:
+                print("Invalid filter resonance value.")
+                
+        elif cmd == "envelope":
+            if not args:
+                print("Usage: envelope <0.0-1.0>")
+                return
+            try:
+                sensitivity = float(args[0])
+                effect.set_envelope_sensitivity(sensitivity)
+            except ValueError:
+                print("Invalid envelope sensitivity value.")
+                
+        elif cmd == "lfo_freq":
+            if not args:
+                print("Usage: lfo_freq <frequency_hz>")
+                return
+            try:
+                freq = float(args[0])
+                effect.set_lfo_frequency(freq)
+            except ValueError:
+                print("Invalid LFO frequency value.")
+                
+        elif cmd == "lfo_depth":
+            if not args:
+                print("Usage: lfo_depth <0.0-1.0>")
+                return
+            try:
+                depth = float(args[0])
+                effect.set_lfo_depth(depth)
+            except ValueError:
+                print("Invalid LFO depth value.")
+                
+        elif cmd == "preset":
+            if not args:
+                print("Usage: preset <name>")
+                if hasattr(effect, 'list_presets'):
+                    effect.list_presets()
+                return
+            effect.set_preset(args[0])
+            
+        elif cmd == "presets":
+            if hasattr(effect, 'list_presets'):
+                effect.list_presets()
+            else:
+                print("Current effect doesn't support presets")
+                
+        elif cmd == "reset":
+            if hasattr(effect, 'reset'):
+                effect.reset()
+            else:
+                print("Current effect doesn't support reset")
                 
         else:
             print(f"Unknown command: {cmd}")
