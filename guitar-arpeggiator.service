@@ -7,9 +7,9 @@ Wants=network.target
 Type=simple
 User=pi
 Group=audio
-WorkingDirectory=/home/pi/guitar-arpeggiator
-Environment=PATH=/home/pi/guitar-arpeggiator/venv/bin
-ExecStart=/home/pi/guitar-arpeggiator/venv/bin/python headless_mode.py
+WorkingDirectory=/home/pi/guitar-effects
+Environment=PATH=/home/pi/guitar-effects/venv/bin
+ExecStart=/home/pi/guitar-effects/venv/bin/python headless_mode.py
 Restart=always
 RestartSec=10
 StandardOutput=journal

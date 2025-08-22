@@ -8,8 +8,7 @@ import numpy as np
 import time
 from config import Config
 from chord_detector import ChordDetector
-from arpeggio_engine import ArpeggioEngine
-from synth_engine import SynthEngine
+from arpeggiator import ArpeggioEngine, SynthEngine
 
 def test_config():
     """Test configuration system"""

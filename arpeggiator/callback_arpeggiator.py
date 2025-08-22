@@ -9,8 +9,8 @@ import time
 import threading
 from config import Config
 from chord_detector import ChordDetector
-from arpeggio_engine import ArpeggioEngine
-from synth_engine import SynthEngine
+from .arpeggio_engine import ArpeggioEngine
+from .synth_engine import SynthEngine
 
 class CallbackGuitarArpeggiator:
     def __init__(self):

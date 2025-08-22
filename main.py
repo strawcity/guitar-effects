@@ -4,8 +4,7 @@ import time as time_module
 import threading
 from config import Config
 from chord_detector import ChordDetector
-from arpeggio_engine import ArpeggioEngine
-from synth_engine import SynthEngine
+from arpeggiator import ArpeggioEngine, SynthEngine
 from gpio_interface import GPIOInterface
 
 class GuitarArpeggiator:

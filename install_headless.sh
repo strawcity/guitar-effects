@@ -20,7 +20,7 @@ echo "👤 Current user: $CURRENT_USER"
 
 # Check if we're in the right directory
 if [ ! -f "headless_mode.py" ]; then
-    echo "❌ Please run this script from the guitar-arpeggiator directory"
+    echo "❌ Please run this script from the guitar-effects directory"
     exit 1
 fi
 
