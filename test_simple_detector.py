@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Test script for the new Chordino chord detector
+Test script for the simple chord detector
 """
 
 try:
-    from chordino_chord_detector import ChordinoChordDetector
-    print("✅ Chordino detector imported successfully")
+    from simple_chord_detector import SimpleChordDetector
+    print("✅ Simple chord detector imported successfully")
     
     # Test initialization
-    detector = ChordinoChordDetector()
-    print("✅ Chordino detector initialized")
+    detector = SimpleChordDetector()
+    print("✅ Simple chord detector initialized")
     
     # Test with dummy audio
     import numpy as np
@@ -25,18 +25,19 @@ try:
     print(f"   Notes: {result.get('notes', [])}")
     print(f"   Confidence: {result.get('confidence', 0):.2f}")
     
-    print("\n🎯 Chordino detector is working!")
-    print("💡 This should provide much better chord recognition than the previous methods")
+    print("\n🎯 Simple chord detector is working!")
+    print("💡 This detector uses optimized FFT analysis for reliable chord recognition")
+    print("💡 No external dependencies required!")
     
 except ImportError as e:
     print(f"❌ Import error: {e}")
-    print("💡 Make sure you have installed the requirements:")
-    print("   pip install chord-extractor soundfile")
+    print("💡 Make sure you have installed the basic requirements:")
+    print("   pip install numpy scipy sounddevice")
     
 except Exception as e:
     print(f"❌ Error: {e}")
-    print("💡 There may be an issue with the chord-extractor package")
+    print("💡 There may be an issue with the basic dependencies")
 
 if __name__ == "__main__":
-    print("🎸 Testing Chordino Chord Detector")
+    print("🎸 Testing Simple Chord Detector")
     print("=" * 40)

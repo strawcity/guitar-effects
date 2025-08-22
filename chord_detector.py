@@ -2,7 +2,7 @@ import numpy as np
 from scipy import signal
 import math
 import time
-from chordino_chord_detector import ChordinoChordDetector
+from simple_chord_detector import SimpleChordDetector
 
 class ChordDetector:
     def __init__(self, config):
@@ -10,10 +10,10 @@ class ChordDetector:
         self.sample_rate = config.sample_rate
         self.chunk_size = config.chunk_size
         
-        # Initialize the professional Chordino chord detector for accurate chord detection
+        # Initialize the simple but effective chord detector for accurate chord detection
         # Use optimized sample rate for better frequency resolution
         optimal_sample_rate = min(self.sample_rate, 44100)
-        self.chord_detector = ChordinoChordDetector(optimal_sample_rate)
+        self.chord_detector = SimpleChordDetector(optimal_sample_rate)
         
         # Note frequencies for all 12 chromatic notes across guitar range
         self.note_frequencies = {
