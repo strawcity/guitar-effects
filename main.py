@@ -260,8 +260,25 @@ class GuitarArpeggiator:
             if outdata is not None:
                 if indata is not None:
                     # Start with pass-through audio (guitar input)
+                    # Handle different input shapes - ensure we get mono audio
+                    if indata.ndim == 2:
+                        # If input is 2D, take the first channel or average across channels
+                        if indata.shape[1] == 1:
+                            # Single channel, 2D format
+                            input_audio = indata[:, 0]
+                        else:
+                            # Multiple channels, average them
+                            input_audio = np.mean(indata, axis=1)
+                    else:
+                        # 1D input
+                        input_audio = indata
+                    
                     gain = 2.0  # Increase volume for better monitoring
-                    outdata[:] = np.clip(indata * gain, -1.0, 1.0)
+                    # Ensure output is the right shape
+                    if outdata.ndim == 2:
+                        outdata[:, 0] = np.clip(input_audio * gain, -1.0, 1.0)
+                    else:
+                        outdata[:] = np.clip(input_audio * gain, -1.0, 1.0)
                 else:
                     outdata.fill(0)
                 
@@ -277,12 +294,24 @@ class GuitarArpeggiator:
                             
                             # Mix with pass-through (arpeggio at 0.7 volume)
                             arpeggio_gain = 0.7
-                            if len(arpeggio_frame) == frames:
-                                # Full frame
-                                outdata[:] = np.clip(outdata + arpeggio_frame * arpeggio_gain, -1.0, 1.0)
+                            
+                            # Ensure shapes match for mixing
+                            if outdata.ndim == 2:
+                                # 2D output
+                                if len(arpeggio_frame) == frames:
+                                    # Full frame
+                                    outdata[:, 0] = np.clip(outdata[:, 0] + arpeggio_frame * arpeggio_gain, -1.0, 1.0)
+                                else:
+                                    # Partial frame (end of arpeggio)
+                                    outdata[:samples_to_output, 0] = np.clip(outdata[:samples_to_output, 0] + arpeggio_frame * arpeggio_gain, -1.0, 1.0)
                             else:
-                                # Partial frame (end of arpeggio)
-                                outdata[:samples_to_output] = np.clip(outdata[:samples_to_output] + arpeggio_frame * arpeggio_gain, -1.0, 1.0)
+                                # 1D output
+                                if len(arpeggio_frame) == frames:
+                                    # Full frame
+                                    outdata[:] = np.clip(outdata + arpeggio_frame * arpeggio_gain, -1.0, 1.0)
+                                else:
+                                    # Partial frame (end of arpeggio)
+                                    outdata[:samples_to_output] = np.clip(outdata[:samples_to_output] + arpeggio_frame * arpeggio_gain, -1.0, 1.0)
                             
                             # Update position
                             self.arpeggio_position += samples_to_output
