@@ -34,6 +34,14 @@ class GuitarArpeggiator:
         self.synth_type = self.config.default_synth
         self.duration = 2.4  # Full measure at 100 BPM (4 beats × 0.6 seconds)
         
+        # Input gain control for better signal detection
+        self.input_gain = 3.0  # Boost input by 3x (adjustable)
+        self.target_input_level = 0.7  # Target peak level for optimal detection
+        
+        # Keyboard input handling
+        self.keyboard_thread = None
+        self.keyboard_running = False
+        
         # Auto-detect audio devices
         self.input_device = None
         self.output_device = None
@@ -44,6 +52,7 @@ class GuitarArpeggiator:
         print(f"Default synth: {self.synth_type}")
         print("🎵 Arpeggios will play for full musical measures - no new chords until measure completes!")
         print("🎸 Arpeggios only trigger with 3+ notes detected (filters out single notes and power chords)")
+        print(f"🎚️  Input gain: {self.input_gain}x (target level: {self.target_input_level})")
         
         # Auto-detect and configure audio devices
         self.detect_audio_devices()
@@ -58,6 +67,9 @@ class GuitarArpeggiator:
             self.gpio.register_button_callback('stop', self.stop)
             self.gpio.register_button_callback('tempo_up', lambda: self.set_tempo(self.tempo + 10))
             self.gpio.register_button_callback('tempo_down', lambda: self.set_tempo(self.tempo - 10))
+            # Gain control buttons (when you add physical buttons later)
+            # self.gpio.register_button_callback('gain_up', lambda: self.set_input_gain(self.input_gain + 0.5))
+            # self.gpio.register_button_callback('gain_down', lambda: self.set_input_gain(self.input_gain - 0.5))
             print("✅ GPIO button callbacks registered")
     
     def detect_audio_devices(self):
@@ -153,7 +165,8 @@ class GuitarArpeggiator:
             print("Arpeggiator is already running!")
             return
         
-
+        print("🎚️  Starting keyboard input handler for gain control...")
+        self.start_keyboard_input()
         
         self.is_running = True
         self.audio_thread = threading.Thread(target=self.audio_loop)
@@ -161,6 +174,12 @@ class GuitarArpeggiator:
         self.audio_thread.start()
         
         print("Arpeggiator started! Press Ctrl+C to stop.")
+        print("💡 Use keyboard commands to control gain:")
+        print("   gain+ / gain- : Adjust gain by 0.5x")
+        print("   gain++ / gain-- : Adjust gain by 1.0x")
+        print("   gain=5.0 : Set specific gain value")
+        print("   auto : Auto-adjust gain")
+        print("   status : Show current settings")
         
         try:
             while self.is_running:
@@ -171,10 +190,14 @@ class GuitarArpeggiator:
     def stop(self):
         """Stop the arpeggiator"""
         self.is_running = False
+        
+        # Stop keyboard input handler
+        self.keyboard_running = False
+        if self.keyboard_thread and self.keyboard_thread.is_alive():
+            self.keyboard_thread.join(timeout=1.0)
+        
         if self.audio_thread:
             self.audio_thread.join(timeout=1.0)
-        
-
         
         print("\nArpeggiator stopped.")
     
@@ -194,9 +217,16 @@ class GuitarArpeggiator:
             
             # Process input audio
             if indata is not None and len(indata) > 0:
-                audio_data = indata.flatten().astype(np.float32)
+                # Apply input gain to boost signal for better detection
+                raw_audio = indata.flatten().astype(np.float32)
+                audio_data = raw_audio * self.input_gain
                 
-                # Visual logging of audio levels
+                # Clamp to prevent clipping
+                audio_data = np.clip(audio_data, -1.0, 1.0)
+                
+                # Visual logging of audio levels (show both raw and gain-adjusted)
+                raw_max = np.max(np.abs(raw_audio))
+                raw_avg = np.mean(np.abs(raw_audio))
                 max_level = np.max(np.abs(audio_data))
                 avg_level = np.mean(np.abs(audio_data))
                 
@@ -224,7 +254,7 @@ class GuitarArpeggiator:
                             progress = elapsed / measure_duration
                             measure_progress = f" | Measure: {progress:.1%}"
                     
-                    print(f"\r🎤 Input: {meter} | Max: {max_level:.4f} | Avg: {avg_level:.4f} | Threshold: 0.0100 | Frames: {frames}{measure_progress}", end="", flush=True)
+                    print(f"\r🎤 Input: {meter} | Raw: {raw_max:.4f} | Gain: {max_level:.4f} | Avg: {avg_level:.4f} | Threshold: 0.0100 | Frames: {frames}{measure_progress}", end="", flush=True)
                 
                 # Only process if we have valid audio data and above threshold
                 if max_level > 0.01:  # Higher threshold for guitar
@@ -474,6 +504,92 @@ class GuitarArpeggiator:
         self.tempo = max(60, min(200, tempo))  # Limit to 60-200 BPM
         print(f"Tempo set to {self.tempo} BPM")
     
+    def set_input_gain(self, new_gain):
+        """Set the input gain multiplier"""
+        if 0.5 <= new_gain <= 10.0:
+            self.input_gain = new_gain
+            print(f"🎚️  Input gain set to {self.input_gain}x")
+            print(f"💡 Target level: {self.target_input_level} (adjust gain to reach this)")
+        else:
+            print(f"⚠️  Gain {new_gain}x is outside valid range (0.5-10.0)")
+    
+    def auto_adjust_gain(self):
+        """Automatically adjust gain based on current input levels"""
+        if hasattr(self, 'last_chord_result') and self.last_chord_result:
+            # Get the strongest detected note
+            if 'note_details' in self.last_chord_result:
+                max_strength = max([note.get('strength', 0) for note in self.last_chord_result['note_details']])
+                
+                if max_strength > 0:
+                    # Calculate optimal gain to reach target level
+                    current_gain = self.input_gain
+                    optimal_gain = self.target_input_level / max_strength
+                    
+                    # Limit the change to prevent sudden jumps
+                    max_change = 0.5
+                    new_gain = np.clip(optimal_gain, current_gain - max_change, current_gain + max_change)
+                    
+                    if abs(new_gain - current_gain) > 0.1:
+                        self.input_gain = new_gain
+                        print(f"🎚️  Auto-adjusted gain: {current_gain:.1f}x → {new_gain:.1f}x")
+                        print(f"💡 This should improve note detection accuracy")
+        else:
+            print("⚠️  No chord detected yet - play a chord to auto-adjust gain")
+    
+    def handle_keyboard_input(self, command):
+        """Handle keyboard input commands for gain control"""
+        command = command.strip().lower()
+        
+        if command == "gain+":
+            self.set_input_gain(self.input_gain + 0.5)
+        elif command == "gain-":
+            self.set_input_gain(self.input_gain - 0.5)
+        elif command == "gain++":
+            self.set_input_gain(self.input_gain + 1.0)
+        elif command == "gain--":
+            self.set_input_gain(self.input_gain - 1.0)
+        elif command.startswith("gain="):
+            try:
+                value = float(command.split("=")[1])
+                self.set_input_gain(value)
+            except ValueError:
+                print("⚠️  Invalid gain value. Use format: gain=5.0")
+        elif command == "auto":
+            self.auto_adjust_gain()
+        elif command == "status":
+            print(f"🎚️  Current gain: {self.input_gain}x")
+            print(f"🎯 Target level: {self.target_input_level}")
+            if hasattr(self, 'last_chord_result') and self.last_chord_result:
+                print(f"📊 Last chord confidence: {self.last_chord_result.get('confidence', 0):.2f}")
+            else:
+                print("📊 No chord detected yet")
+        else:
+            print(f"❓ Unknown command: {command}")
+            print("💡 Try: gain+, gain-, gain++, gain--, gain=value, auto, status")
+    
+    def start_keyboard_input(self):
+        """Start keyboard input handling in a separate thread"""
+        if self.keyboard_thread is None or not self.keyboard_thread.is_alive():
+            self.keyboard_running = True
+            self.keyboard_thread = threading.Thread(target=self._keyboard_input_loop, daemon=True)
+            self.keyboard_thread.start()
+            print("⌨️  Keyboard input handler started!")
+            print("💡 Type commands like 'gain+', 'gain-', 'auto', 'status'")
+    
+    def _keyboard_input_loop(self):
+        """Keyboard input loop running in separate thread"""
+        while self.keyboard_running:
+            try:
+                command = input().strip()
+                if command.lower() in ['quit', 'exit', 'stop']:
+                    self.keyboard_running = False
+                    break
+                self.handle_keyboard_input(command)
+            except EOFError:
+                break
+            except Exception as e:
+                print(f"⚠️  Keyboard input error: {e}")
+    
     def set_pattern(self, pattern):
         """Set the arpeggio pattern"""
         if pattern in self.arpeggio_engine.patterns:
@@ -571,7 +687,16 @@ def main():
     print("  set_pattern(name) - Set pattern")
     print("  set_synth(type) - Set synthesizer")
     print("  set_duration(seconds) - Set duration")
+    print("  set_input_gain(value) - Set input gain (0.5-10.0x)")
+    print("  auto_adjust_gain() - Auto-adjust gain for optimal detection")
     print("  stop() - Stop the arpeggiator")
+    
+    print("\n🎚️  Quick Gain Control:")
+    print("  gain+ - Increase gain by 0.5x")
+    print("  gain- - Decrease gain by 0.5x")
+    print("  gain++ - Increase gain by 1.0x")
+    print("  gain-- - Decrease gain by 1.0x")
+    print("  gain=value - Set gain to specific value (e.g., gain=5.0)")
     
     print("\nAvailable patterns:", list(arpeggiator.arpeggio_engine.patterns.keys()))
     print("Available synths:", list(arpeggiator.synth_engine.synth_types.keys()))

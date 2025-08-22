@@ -445,6 +445,34 @@ self.button_pins = {'start': 17, 'stop': 18, 'tempo_up': 22, 'tempo_down': 23}
 self.audio_interface_pins = {'mute': 24, 'volume_up': 25, 'volume_down': 26}
 ```
 
+### Keyboard Controls (No Physical Buttons Required)
+
+Since you don't have physical GPIO buttons yet, the system includes full
+keyboard control:
+
+#### **Quick Commands:**
+
+- `gain+` / `gain-` : Adjust gain by 0.5x
+- `gain++` / `gain--` : Adjust gain by 1.0x
+- `gain=5.0` : Set specific gain value
+- `auto` : Auto-adjust gain for optimal detection
+- `status` : Show current gain and chord detection status
+
+#### **Interactive Gain Control:**
+
+For detailed gain testing without the main program:
+
+```bash
+python interactive_gain_control.py
+```
+
+This standalone tool lets you:
+
+- Monitor audio levels in real-time
+- Test different gain settings
+- See the effect of gain changes on your signal
+- Find the optimal gain for your setup
+
 ## Technical Details
 
 ### Chord Detection
