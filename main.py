@@ -1,6 +1,6 @@
 import numpy as np
 import sounddevice as sd
-import time
+import time as time_module
 import threading
 from config import Config
 from chord_detector import ChordDetector
@@ -163,7 +163,7 @@ class GuitarArpeggiator:
         
         try:
             while self.is_running:
-                time.sleep(0.1)
+                time_module.sleep(0.1)
         except KeyboardInterrupt:
             self.stop()
     
@@ -219,7 +219,7 @@ class GuitarArpeggiator:
             # Only process if we have valid audio data and above threshold
             if max_level > 0.01:  # Higher threshold for guitar
                 # Add cooldown to prevent excessive processing
-                current_time = time.time()
+                current_time = time_module.time()
                 if not hasattr(self, 'last_chord_time') or current_time - getattr(self, 'last_chord_time', 0) > 1.0:
                     # Detect chord
                     chord_result = self.chord_detector.detect_chord(audio_data)
@@ -281,7 +281,7 @@ class GuitarArpeggiator:
                 
                 # Keep the stream alive
                 while self.is_running:
-                    time.sleep(0.1)
+                    time_module.sleep(0.1)
                     
         except Exception as e:
             print(f"Audio error: {e}")
@@ -393,7 +393,7 @@ class GuitarArpeggiator:
                 {'note': 'G', 'octave': 4, 'frequency': 392.00, 'strength': 0.9, 'cents_off': 0}
             ],
             'confidence': 0.95,
-            'timestamp': time.time(),
+            'timestamp': time_module.time(),
             'valid': True
         }
         

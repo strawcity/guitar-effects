@@ -496,6 +496,9 @@ self.audio_interface_pins = {'mute': 24, 'volume_up': 25, 'volume_down': 26}
    source ~/guitar-arpeggiator-env/bin/activate
    python main.py
    ```
+8. **AttributeError: 'cdata' has no field 'time'**: This is a known issue with
+   sounddevice on Raspberry Pi. The project has been fixed to use `time_module`
+   instead of `time` to avoid conflicts with CFFI callbacks.
 
 #### Linux Specific
 
