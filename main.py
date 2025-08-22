@@ -418,10 +418,15 @@ class GuitarArpeggiator:
         """Main audio processing loop using callback-based approach"""
         try:
             # Use callback-based stream for better performance
+            # Optimize sample rate for guitar detection (44.1kHz is sufficient)
+            optimal_sample_rate = min(self.config.sample_rate, 44100)
+            if optimal_sample_rate != self.config.sample_rate:
+                print(f"🎵 Optimizing sample rate: {self.config.sample_rate} → {optimal_sample_rate} Hz")
+            
             with sd.Stream(
                 channels=(1, 1),  # Input and output for pass-through
-                samplerate=self.config.sample_rate,
-                blocksize=2048,  # Larger buffer for Pi stability
+                samplerate=optimal_sample_rate,
+                blocksize=4096,  # Larger buffer for better frequency resolution
                 dtype=np.float32,
                 latency='high',  # Use high latency for stability
                 callback=self.audio_callback,

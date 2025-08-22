@@ -2,12 +2,18 @@ import numpy as np
 from scipy import signal
 import math
 import time
+from guitar_tuner import GuitarTuner
 
 class ChordDetector:
     def __init__(self, config):
         self.config = config
         self.sample_rate = config.sample_rate
         self.chunk_size = config.chunk_size
+        
+        # Initialize the guitar tuner for accurate note detection
+        # Use optimized sample rate for better frequency resolution
+        optimal_sample_rate = min(self.sample_rate, 44100)
+        self.guitar_tuner = GuitarTuner(optimal_sample_rate)
         
         # Note frequencies for all 12 chromatic notes across guitar range
         self.note_frequencies = {
@@ -79,12 +85,37 @@ class ChordDetector:
             return self.empty_chord_result()
     
     def find_frequencies_in_audio(self, audio_data):
-        """Extract dominant frequencies using FFT with improved filtering"""
+        """Extract dominant frequencies using guitar tuner algorithm"""
         # Convert to numpy array and normalize
         audio_array = np.array(audio_data, dtype=np.float32)
         if len(audio_array) == 0:
             return []
         
+        # Use the guitar tuner to detect notes
+        detected_notes = []
+        
+        # Analyze the audio in chunks for better accuracy
+        chunk_size = min(2048, len(audio_array))
+        if len(audio_array) >= chunk_size:
+            # Use the guitar tuner's harmonic analysis
+            tuner_result = self.guitar_tuner.detect_note(audio_array)
+            
+            if tuner_result:
+                # Convert tuner result to frequency data format
+                detected_notes.append({
+                    'frequency': tuner_result['frequency'],
+                    'magnitude': tuner_result['total_strength'],
+                    'note_info': tuner_result
+                })
+        
+        # If guitar tuner didn't work, fall back to basic FFT
+        if not detected_notes:
+            detected_notes = self._fallback_fft_analysis(audio_array)
+        
+        return detected_notes
+    
+    def _fallback_fft_analysis(self, audio_array):
+        """Fallback to basic FFT if guitar tuner fails"""
         # Apply Hann window to reduce spectral leakage
         window = signal.windows.hann(len(audio_array))
         windowed_audio = audio_array * window
@@ -96,7 +127,7 @@ class ChordDetector:
         # Create frequency bins
         frequencies = np.fft.fftfreq(len(fft_result), 1/self.sample_rate)
         
-        # Only keep positive frequencies in guitar range (80-1200 Hz for better accuracy)
+        # Only keep positive frequencies in guitar range (80-1200 Hz)
         mask = (frequencies > 80) & (frequencies < 1200)
         guitar_frequencies = frequencies[mask]
         guitar_magnitudes = magnitude[mask]
@@ -104,23 +135,23 @@ class ChordDetector:
         if len(guitar_magnitudes) == 0:
             return []
         
-        # Find peaks with improved filtering
-        threshold = np.max(guitar_magnitudes) * 0.05  # 5% of maximum
+        # Find peaks with basic filtering
+        threshold = np.max(guitar_magnitudes) * 0.05
         peaks, properties = signal.find_peaks(
             guitar_magnitudes,
             height=threshold,
-            distance=8,  # Minimum separation between peaks
-            prominence=threshold * 0.4  # Require some prominence
+            distance=8,
+            prominence=threshold * 0.4
         )
         
         # Get peak frequencies and magnitudes
         peak_frequencies = guitar_frequencies[peaks]
         peak_magnitudes = guitar_magnitudes[peaks]
         
-        # Sort by magnitude (strongest first)
+        # Sort by magnitude
         sorted_indices = np.argsort(peak_magnitudes)[::-1]
         
-        # Return top 6 frequencies (reduced for better accuracy)
+        # Return top 6 frequencies
         dominant_frequencies = []
         for i in sorted_indices[:6]:
             dominant_frequencies.append({
@@ -131,23 +162,41 @@ class ChordDetector:
         return dominant_frequencies
     
     def frequencies_to_notes(self, frequency_data):
-        """Convert frequencies to musical note names"""
+        """Convert frequencies to musical note names using guitar tuner when available"""
         detected_notes = []
         
         for freq_info in frequency_data:
             frequency = freq_info['frequency']
             magnitude = freq_info['magnitude']
             
-            closest_note = self.find_closest_note(frequency)
-            
-            if closest_note and abs(closest_note['cents_off']) < 100:  # More lenient for testing
+            # Check if we have guitar tuner results
+            if 'note_info' in freq_info and freq_info['note_info']:
+                tuner_result = freq_info['note_info']
                 detected_notes.append({
-                    'note': closest_note['note'],
-                    'octave': closest_note['octave'],
+                    'note': tuner_result['note'],
+                    'octave': tuner_result['octave'],
                     'frequency': frequency,
                     'strength': magnitude,
-                    'cents_off': closest_note['cents_off']
+                    'cents_off': tuner_result['cents_off'],
+                    'confidence': tuner_result['confidence'],
+                    'harmonic_count': tuner_result['harmonic_count'],
+                    'guitar_string': self.identify_guitar_string(frequency)
                 })
+            else:
+                # Fall back to basic note detection
+                closest_note = self.find_closest_note(frequency)
+                
+                if closest_note and abs(closest_note['cents_off']) < 100:
+                    detected_notes.append({
+                        'note': closest_note['note'],
+                        'octave': closest_note['octave'],
+                        'frequency': frequency,
+                        'strength': magnitude,
+                        'cents_off': closest_note['cents_off'],
+                        'confidence': 0.5,  # Lower confidence for basic detection
+                        'harmonic_count': 1,
+                        'guitar_string': closest_note.get('guitar_string')
+                    })
         
         # Remove duplicate notes (keep strongest)
         unique_notes = {}
