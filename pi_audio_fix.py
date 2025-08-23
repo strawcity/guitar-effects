@@ -19,17 +19,17 @@ def find_scarlett_2i2():
     scarlett_devices = []
     
     for i, device in enumerate(devices):
-            name = device['name'].lower()
-            if 'scarlett' in name or '2i2' in name or 'focusrite' in name:
-                scarlett_devices.append((i, device))
-                print(f"✅ Found Scarlett 2i2 at device {i}: {device['name']}")
-                # Handle different key names for ALSA devices
-                input_channels = device.get('max_inputs', device.get('max_input_channels', 0))
-                output_channels = device.get('max_outputs', device.get('max_output_channels', 0))
-                sample_rate = device.get('default_samplerate', 48000)
-                print(f"   Input channels: {input_channels}")
-                print(f"   Output channels: {output_channels}")
-                print(f"   Sample rate: {sample_rate}")
+        name = device['name'].lower()
+        if 'scarlett' in name or '2i2' in name or 'focusrite' in name:
+            scarlett_devices.append((i, device))
+            print(f"✅ Found Scarlett 2i2 at device {i}: {device['name']}")
+            # Handle different key names for ALSA devices
+            input_channels = device.get('max_inputs', device.get('max_input_channels', 0))
+            output_channels = device.get('max_outputs', device.get('max_output_channels', 0))
+            sample_rate = device.get('default_samplerate', 48000)
+            print(f"   Input channels: {input_channels}")
+            print(f"   Output channels: {output_channels}")
+            print(f"   Sample rate: {sample_rate}")
     
     if not scarlett_devices:
         print("❌ Scarlett 2i2 not found!")
