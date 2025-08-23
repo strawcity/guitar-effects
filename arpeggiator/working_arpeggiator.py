@@ -53,7 +53,7 @@ class WorkingArpeggiatorSystem:
         
         # Audio buffer management - Pi-optimized
         if config.is_pi:
-            self.buffer_size = 2048  # Even larger buffer for Pi stability (~43ms latency)
+            self.buffer_size = 1024  # Balanced buffer for Pi stability (~21ms latency)
             self.latency = 'high'  # More stable on Pi
         else:
             self.buffer_size = 256  # Low latency for other systems
@@ -138,21 +138,13 @@ class WorkingArpeggiatorSystem:
         
         try:
             # Start audio input stream for chord detection
-            stream_params = {
-                'channels': 1,
-                'samplerate': self.sample_rate,
-                'blocksize': self.buffer_size,
-                'dtype': np.float32,
-                'latency': self.latency
-            }
-            
-            # Pi-specific optimizations
-            if self.config.is_pi:
-                stream_params['extra_settings'] = sd.default.extra_settings
-                # Add buffer padding for Pi
-                stream_params['latency'] = 0.1  # 100ms latency for stability
-            
-            with sd.InputStream(**stream_params) as stream:
+            with sd.InputStream(
+                channels=1,
+                samplerate=self.sample_rate,
+                blocksize=self.buffer_size,
+                dtype=np.float32,
+                latency=self.latency
+            ) as stream:
                 
                 while self.is_running:
                     # Read audio data
@@ -216,21 +208,13 @@ class WorkingArpeggiatorSystem:
         
         try:
             # Start audio output stream
-            stream_params = {
-                'channels': 1,
-                'samplerate': self.sample_rate,
-                'blocksize': self.buffer_size,
-                'dtype': np.float32,
-                'latency': self.latency
-            }
-            
-            # Pi-specific optimizations
-            if self.config.is_pi:
-                stream_params['extra_settings'] = sd.default.extra_settings
-                # Add buffer padding for Pi
-                stream_params['latency'] = 0.1  # 100ms latency for stability
-            
-            with sd.OutputStream(**stream_params) as stream:
+            with sd.OutputStream(
+                channels=1,
+                samplerate=self.sample_rate,
+                blocksize=self.buffer_size,
+                dtype=np.float32,
+                latency=self.latency
+            ) as stream:
                 
                 while self.is_running:
                     # Generate output audio
