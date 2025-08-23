@@ -218,7 +218,7 @@ def main():
     scarlett_device_id, device_info = find_scarlett_2i2()
     print(f"🔍 Returned: device_id={scarlett_device_id}, device_info={device_info}")
     
-    if not scarlett_device_id:
+    if scarlett_device_id is None:
         print("❌ Cannot proceed without Scarlett 2i2")
         return
     
