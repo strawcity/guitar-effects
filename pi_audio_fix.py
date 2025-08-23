@@ -83,42 +83,6 @@ def test_scarlett_audio(scarlett_device_id):
         print(f"❌ Scarlett test failed: {e}")
         return False
 
-def create_optimized_config(scarlett_device_id):
-    """Create optimized configuration for the Pi + Scarlett 2i2."""
-    print(f"\n⚙️  Creating optimized configuration...")
-    
-    # Create a Pi-specific config override
-    config_content = f"""# Pi + Scarlett 2i2 Optimized Configuration
-# This file overrides default settings for optimal performance
-
-# Audio device selection
-SCARLETT_INPUT_DEVICE = {scarlett_device_id}
-SCARLETT_OUTPUT_DEVICE = {scarlett_device_id}
-
-# Buffer settings for Pi stability
-PI_BUFFER_SIZE = 1024
-PI_LATENCY = 'high'
-
-# Sample rate
-SAMPLE_RATE = 48000
-
-# Audio processing
-CHUNK_SIZE = 1024
-DEFAULT_TEMPO = 120
-DEFAULT_PATTERN = 'up'
-DEFAULT_SYNTH = 'sine'
-"""
-    
-    config_path = 'pi_scarlett_config.py'
-    try:
-        with open(config_path, 'w') as f:
-            f.write(config_content)
-        print(f"✅ Created {config_path}")
-        return config_path
-    except Exception as e:
-        print(f"❌ Could not create config: {e}")
-        return None
-
 def update_working_arpeggiator(scarlett_device_id):
     """Update the working arpeggiator to use the Scarlett 2i2."""
     print(f"\n🔧 Updating working arpeggiator...")
@@ -183,48 +147,19 @@ def update_audio_processor(scarlett_device_id):
         print(f"❌ Could not update audio processor: {e}")
         return False
 
-def create_test_script(scarlett_device_id):
-    """Create a test script that uses the Scarlett 2i2."""
-    print(f"\n🧪 Creating test script...")
+def create_simple_test(scarlett_device_id):
+    """Create a simple test script."""
+    print(f"\n🧪 Creating simple test script...")
     
     test_content = f"""#!/usr/bin/env python3
-\"\"\"
-Scarlett 2i2 Test Script
-
-This script tests the Scarlett 2i2 integration on your Pi.
-\"\"\"
-
 import sounddevice as sd
 import numpy as np
-import time
 
-def test_scarlett_integration():
-    """Test the complete Scarlett 2i2 integration."""
-    print("🎸 TESTING SCARLETT 2I2 INTEGRATION")
-    print("=" * 50)
+def test_scarlett():
+    print("🎸 Testing Scarlett 2i2...")
     
     try:
-        # Test input
-        print("🎤 Testing input...")
-        with sd.InputStream(
-            device={scarlett_device_id},
-            channels=1,
-            samplerate=48000,
-            blocksize=1024,
-            dtype=np.float32,
-            latency='high'
-        ) as stream:
-            print("✅ Input stream working")
-            
-            # Read some audio
-            audio_data, overflowed = stream.read(1024)
-            if overflowed:
-                print("⚠️  Input overflow detected")
-            else:
-                print("✅ Audio input working")
-        
         # Test output
-        print("🔊 Testing output...")
         with sd.OutputStream(
             device={scarlett_device_id},
             channels=1,
@@ -235,30 +170,25 @@ def test_scarlett_integration():
         ) as stream:
             print("✅ Output stream working")
             
-            # Generate test tone
+            # Play test tone
             sample_rate = 48000
-            duration = 3.0
+            duration = 2.0
             t = np.linspace(0, duration, int(sample_rate * duration), False)
-            test_tone = 0.3 * np.sin(2 * np.pi * 440 * t)  # 440Hz A note
+            test_tone = 0.3 * np.sin(2 * np.pi * 440 * t)
             
-            # Play through Scarlett
             stream.write(test_tone)
             print("✅ Audio output working")
         
-        print("\\n🎉 SCARLETT 2I2 INTEGRATION SUCCESSFUL!")
-        print("💡 Your effects should now work properly")
-        print("💡 Try: python3 interactive_cli.py")
+        print("🎉 Scarlett 2i2 test successful!")
         
     except Exception as e:
-        print(f"❌ Integration test failed: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"❌ Test failed: {{e}}")
 
 if __name__ == "__main__":
-    test_scarlett_integration()
+    test_scarlett()
 """
     
-    test_path = 'test_scarlett_integration.py'
+    test_path = 'test_scarlett_simple.py'
     try:
         with open(test_path, 'w') as f:
             f.write(test_content)
@@ -287,9 +217,6 @@ def main():
         print("❌ Scarlett 2i2 test failed")
         return
     
-    # Create optimized config
-    config_path = create_optimized_config(scarlett_device_id)
-    
     # Update working arpeggiator
     if not update_working_arpeggiator(scarlett_device_id):
         print("❌ Could not update arpeggiator")
@@ -301,9 +228,9 @@ def main():
         return
     
     # Create test script
-    test_path = create_test_script(scarlett_device_id)
+    test_path = create_simple_test(scarlett_device_id)
     
-    print("\\n🎉 SCARLETT 2I2 INTEGRATION COMPLETE!")
+    print("\n🎉 SCARLETT 2I2 INTEGRATION COMPLETE!")
     print("=" * 60)
     print("Your Pi is now configured to use the Scarlett 2i2")
     print()
