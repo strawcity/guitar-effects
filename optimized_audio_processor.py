@@ -69,7 +69,7 @@ class OptimizedAudioProcessor:
         
         # OPTIMIZED: Platform-specific buffer sizes
         if config.is_pi:
-            self.buffer_size = 1024  # Larger buffer for Pi stability (~21ms latency)
+            self.buffer_size = 2048  # Even larger buffer for Pi stability (~43ms latency)
             self.latency_setting = 'high'
         else:
             self.buffer_size = 256  # Smaller buffer for other systems (~5.8ms latency)
