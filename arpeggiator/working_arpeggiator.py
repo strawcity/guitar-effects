@@ -51,8 +51,14 @@ class WorkingArpeggiatorSystem:
         self.duration = 2.0  # seconds
         self.arpeggio_gain = 0.8  # Volume of arpeggio vs guitar
         
-        # Audio buffer management
-        self.buffer_size = 256  # Low latency
+        # Audio buffer management - Pi-optimized
+        if config.is_pi:
+            self.buffer_size = 1024  # Larger buffer for Pi stability
+            self.latency = 'high'  # More stable on Pi
+        else:
+            self.buffer_size = 256  # Low latency for other systems
+            self.latency = 'low'
+        
         self.input_buffer = np.array([])
         self.output_buffer = np.array([])
         
@@ -137,7 +143,7 @@ class WorkingArpeggiatorSystem:
                 samplerate=self.sample_rate,
                 blocksize=self.buffer_size,
                 dtype=np.float32,
-                latency='low'
+                latency=self.latency
             ) as stream:
                 
                 while self.is_running:
@@ -207,7 +213,7 @@ class WorkingArpeggiatorSystem:
                 samplerate=self.sample_rate,
                 blocksize=self.buffer_size,
                 dtype=np.float32,
-                latency='low'
+                latency=self.latency
             ) as stream:
                 
                 while self.is_running:

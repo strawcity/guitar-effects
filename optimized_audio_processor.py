@@ -67,8 +67,13 @@ class OptimizedAudioProcessor:
         self.synth_type = config.default_synth
         self.duration = 2.4
         
-        # OPTIMIZED: Much smaller buffer for lower latency
-        self.buffer_size = 256  # Reduced from 4096 to 256 (~5.8ms latency)
+        # OPTIMIZED: Platform-specific buffer sizes
+        if config.is_pi:
+            self.buffer_size = 1024  # Larger buffer for Pi stability (~21ms latency)
+            self.latency_setting = 'high'
+        else:
+            self.buffer_size = 256  # Smaller buffer for other systems (~5.8ms latency)
+            self.latency_setting = 'low'
         
         # Threading
         self.audio_thread = None
@@ -309,13 +314,13 @@ class OptimizedAudioProcessor:
         try:
             self.is_running = True
             
-            # OPTIMIZED: Use low latency settings
+            # OPTIMIZED: Platform-specific latency settings
             with sd.Stream(
                 channels=(1, 1),
                 samplerate=self.sample_rate,
                 blocksize=self.buffer_size,
                 dtype=np.float32,
-                latency='low',  # Changed from 'high' to 'low'
+                latency=self.latency_setting,
                 callback=self.audio_callback,
                 device=(input_device, output_device)
             ) as stream:
