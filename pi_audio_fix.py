@@ -18,7 +18,7 @@ def find_scarlett_2i2():
     devices = sd.query_devices()
     scarlett_devices = []
     
-            for i, device in enumerate(devices):
+        for i, device in enumerate(devices):
             name = device['name'].lower()
             if 'scarlett' in name or '2i2' in name or 'focusrite' in name:
                 scarlett_devices.append((i, device))
