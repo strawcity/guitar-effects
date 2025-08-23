@@ -10,7 +10,7 @@ import threading
 import time
 from typing import Optional, Dict, Any
 
-from audio_processor import AudioProcessor
+from optimized_audio_processor import OptimizedAudioProcessor
 from config import Config
 from guitar_synth import GuitarSynthController
 from effect_controller import EffectController
@@ -41,7 +41,24 @@ class ArpeggiatorController(EffectController):
         
     def demo_mode(self):
         """Run arpeggiator demo."""
-        self.audio_processor.demo_mode()
+        try:
+            # Create demo chord data
+            demo_chord = {
+                'valid': True,
+                'root': 'C',
+                'quality': 'major',
+                'confidence': 0.9,
+                'notes': ['C', 'E', 'G'],
+                'symbol': 'C',
+                'timestamp': time.time()
+            }
+            
+            # Update chord in audio processor
+            self.audio_processor.update_chord(demo_chord)
+            print("🎵 Demo mode: C major chord arpeggio")
+            
+        except Exception as e:
+            print(f"Demo mode error: {e}")
         
     def test_audio(self):
         """Test audio system."""
@@ -169,7 +186,7 @@ class EnhancedInteractiveCLI:
     def __init__(self):
         # Initialize audio processor
         config = Config()
-        self.audio_processor = AudioProcessor(config)
+        self.audio_processor = OptimizedAudioProcessor(config)
         
         # Create effect controllers
         self.effects = {

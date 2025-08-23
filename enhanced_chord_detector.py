@@ -27,7 +27,7 @@ class EnhancedChordDetector:
     and the enhanced guitar note detector.
     """
     
-    def __init__(self, sample_rate: int = 44100):
+    def __init__(self, sample_rate: int = 48000):
         self.sample_rate = sample_rate
         
         # Initialize the enhanced guitar detector

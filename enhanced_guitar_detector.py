@@ -27,7 +27,7 @@ class EnhancedGuitarDetector:
     and multiple detection algorithms for maximum accuracy.
     """
     
-    def __init__(self, sample_rate: int = 44100):
+    def __init__(self, sample_rate: int = 48000):
         self.sample_rate = sample_rate
         
         # A4 reference frequency (440 Hz) as per international standard
