@@ -235,9 +235,19 @@ class EnhancedInteractiveCLI:
         
     def start_audio_processing(self):
         """Start audio processing in background thread."""
-        self.audio_thread = threading.Thread(target=self.audio_processor.start_audio, daemon=True)
+        # Use Scarlett 2i2 device (device 0) for Pi
+        if self.audio_processor.config.is_pi:
+            self.audio_thread = threading.Thread(
+                target=lambda: self.audio_processor.start_audio(input_device=0, output_device=0), 
+                daemon=True
+            )
+        else:
+            self.audio_thread = threading.Thread(target=self.audio_processor.start_audio, daemon=True)
+        
         self.audio_thread.start()
         print("Audio processing started in background")
+        if self.audio_processor.config.is_pi:
+            print("🎧 Using Scarlett 2i2 (device 0) for audio")
         
     def get_current_effect(self) -> EffectController:
         """Get the currently selected effect."""

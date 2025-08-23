@@ -118,8 +118,8 @@ class Config:
             }
         elif self.is_pi:
             return {
-                'input_priorities': ['USB Audio', 'USB Audio Device', 'USB PnP Sound Device'],
-                'output_priorities': ['bcm2835 ALSA', 'USB Audio', 'USB Audio Device'],
+                'input_priorities': ['Scarlett', '2i2', 'Focusrite', 'USB Audio', 'USB Audio Device'],
+                'output_priorities': ['Scarlett', '2i2', 'Focusrite', 'USB Audio', 'USB Audio Device'],
                 'fallback_input': 'default',
                 'fallback_output': 'default'
             }
