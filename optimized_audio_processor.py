@@ -23,7 +23,9 @@ from guitar_synth import GuitarSynth
 class OptimizedAudioProcessor:
     """Optimized audio processor with low latency and proper passthrough."""
     
-    def __init__(self, config, sample_rate: int = 44100):
+    def __init__(self, config, sample_rate: int = None):
+        if sample_rate is None:
+            sample_rate = config.sample_rate
         self.config = config
         self.sample_rate = sample_rate
         

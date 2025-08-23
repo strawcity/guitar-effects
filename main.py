@@ -3,14 +3,14 @@ import sounddevice as sd
 import time as time_module
 import threading
 from config import Config
-from chord_detector import ChordDetector
+from enhanced_chord_detector import EnhancedChordDetector
 from arpeggiator import ArpeggioEngine, SynthEngine
 from gpio_interface import GPIOInterface
 
 class GuitarArpeggiator:
     def __init__(self):
         self.config = Config()
-        self.chord_detector = ChordDetector(self.config)
+        self.chord_detector = EnhancedChordDetector(self.config.sample_rate)
         self.arpeggio_engine = ArpeggioEngine(self.config)
         self.synth_engine = SynthEngine(self.config)
         
@@ -283,7 +283,7 @@ class GuitarArpeggiator:
                     if can_start_new:
                         print(f"\n🎸 Signal above threshold ({max_level:.4f} > 0.005) - detecting chord...")
                         # Detect chord with detailed debugging
-                        chord_result = self.chord_detector.detect_chord(audio_data)
+                        chord_result = self.chord_detector.detect_chord_from_audio(audio_data)
                         
                         # Store the result for reference
                         self.last_chord_result = chord_result

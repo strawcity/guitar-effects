@@ -4,8 +4,7 @@ Test script to verify threshold fixes work correctly
 """
 
 import numpy as np
-from chordino_chord_detector import ChordinoChordDetector
-from chord_detector import ChordDetector
+from enhanced_chord_detector import EnhancedChordDetector
 
 def test_threshold_checks():
     """Test that threshold checks prevent false detections"""
@@ -15,7 +14,7 @@ def test_threshold_checks():
     print("\n1️⃣ Testing very weak signal (0.001)...")
     weak_audio = np.random.normal(0, 0.001, 4096).astype(np.float32)
     
-    detector = ChordinoChordDetector()
+    detector = EnhancedChordDetector()
     result = detector.detect_chord_from_audio(weak_audio)
     
     if result['valid']:
@@ -31,16 +30,17 @@ def test_threshold_checks():
     result = detector.detect_chord_from_audio(strong_audio)
     print(f"   Result: valid={result['valid']}, notes={len(result.get('note_details', []))}")
     
-    # Test 3: Chord detector threshold check
-    print("\n3️⃣ Testing chord detector threshold check...")
-    chord_detector = ChordDetector(None)  # Mock config
+    # Test 3: Enhanced chord detector threshold check
+    print("\n3️⃣ Testing enhanced chord detector threshold check...")
+    chord_detector = EnhancedChordDetector()
     
-    frequencies = chord_detector.find_frequencies_in_audio(weak_audio)
-    if frequencies:
-        print("❌ Chord detector should have rejected weak signal")
-        print(f"   Found {len(frequencies)} frequencies")
+    # Test with weak audio
+    result = chord_detector.detect_chord_from_audio(weak_audio)
+    if result['valid']:
+        print("❌ Enhanced chord detector should have rejected weak signal")
+        print(f"   Result: {result['root']} {result['quality']}")
     else:
-        print("✅ Chord detector correctly rejected weak signal")
+        print("✅ Enhanced chord detector correctly rejected weak signal")
     
     print("\n🎯 Threshold tests completed!")
 

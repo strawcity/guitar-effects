@@ -22,39 +22,34 @@ class ArpeggiatorController(EffectController):
     
     def __init__(self, audio_processor: OptimizedAudioProcessor):
         super().__init__("arpeggiator", audio_processor)
+        # Get reference to the working arpeggiator system
+        self.working_arpeggiator = audio_processor.working_arpeggiator
         
     def set_tempo(self, tempo: int):
         """Set arpeggiator tempo."""
+        self.working_arpeggiator.set_tempo(tempo)
         self.audio_processor.set_arpeggiator_parameter("tempo", tempo)
         
     def set_pattern(self, pattern: str):
         """Set arpeggiator pattern."""
+        self.working_arpeggiator.set_pattern(pattern)
         self.audio_processor.set_arpeggiator_parameter("pattern", pattern)
         
     def set_synth(self, synth: str):
         """Set arpeggiator synth type."""
+        self.working_arpeggiator.set_synth(synth)
         self.audio_processor.set_arpeggiator_parameter("synth", synth)
         
     def set_duration(self, duration: float):
         """Set arpeggiator duration."""
+        self.working_arpeggiator.set_duration(duration)
         self.audio_processor.set_arpeggiator_parameter("duration", duration)
         
     def demo_mode(self):
         """Run arpeggiator demo."""
         try:
-            # Create demo chord data
-            demo_chord = {
-                'valid': True,
-                'root': 'C',
-                'quality': 'major',
-                'confidence': 0.9,
-                'notes': ['C', 'E', 'G'],
-                'symbol': 'C',
-                'timestamp': time.time()
-            }
-            
-            # Update chord in audio processor
-            self.audio_processor.update_chord(demo_chord)
+            # Use the working arpeggiator demo mode
+            self.working_arpeggiator.demo_mode()
             print("🎵 Demo mode: C major chord arpeggio")
             
         except Exception as e:
@@ -62,20 +57,54 @@ class ArpeggiatorController(EffectController):
         
     def test_audio(self):
         """Test audio system."""
-        self.audio_processor.test_audio()
+        self.working_arpeggiator.test_audio()
         
     def list_patterns(self):
         """List available patterns."""
-        # Get patterns from the arpeggio engine
-        patterns = list(self.audio_processor.arpeggio_engine.patterns.keys())
+        # Get patterns from the working arpeggiator
+        patterns = ["up", "down", "updown", "random"]
         print("Available patterns:", ", ".join(patterns))
         
     def list_synths(self):
         """List available synths."""
-        # Get synths from the synth engine
-        synths = list(self.audio_processor.synth_engine.synth_types.keys())
+        # Get synths from the working arpeggiator
+        synths = ["sine", "square", "saw", "triangle"]
         print("Available synths:", ", ".join(synths))
         
+    def start(self):
+        """Start the arpeggiator effect (called by CLI)."""
+        self.start_arpeggiator()
+        
+    def stop(self):
+        """Stop the arpeggiator effect (called by CLI)."""
+        self.stop_arpeggiator()
+        
+    def start_arpeggiator(self):
+        """Start the working arpeggiator system."""
+        try:
+            self.working_arpeggiator.start_arpeggiator()
+            print("🎸 Working arpeggiator started! Strum chords on your guitar to hear arpeggios.")
+        except Exception as e:
+            print(f"Failed to start arpeggiator: {e}")
+            
+    def stop_arpeggiator(self):
+        """Stop the working arpeggiator system."""
+        try:
+            self.working_arpeggiator.stop_arpeggiator()
+            print("Arpeggiator stopped")
+        except Exception as e:
+            print(f"Failed to stop arpeggiator: {e}")
+            
+    def get_status(self):
+        """Get arpeggiator status."""
+        try:
+            status = self.working_arpeggiator.get_status()
+            print("Arpeggiator Status:")
+            for key, value in status.items():
+                print(f"  {key}: {value}")
+        except Exception as e:
+            print(f"Failed to get status: {e}")
+            
     def get_help(self) -> str:
         """Get arpeggiator help."""
         return """
@@ -186,7 +215,7 @@ class EnhancedInteractiveCLI:
     def __init__(self):
         # Initialize audio processor
         config = Config()
-        self.audio_processor = OptimizedAudioProcessor(config)
+        self.audio_processor = OptimizedAudioProcessor(config, sample_rate=config.sample_rate)
         
         # Create effect controllers
         self.effects = {
@@ -200,9 +229,9 @@ class EnhancedInteractiveCLI:
         }
         self.current_effect = "arpeggiator"
         
-        # Start audio processing
-        self.audio_thread = None
-        self.start_audio_processing()
+        # Don't start audio processing automatically - let user start it when needed
+        # self.audio_thread = None
+        # self.start_audio_processing()
         
     def start_audio_processing(self):
         """Start audio processing in background thread."""

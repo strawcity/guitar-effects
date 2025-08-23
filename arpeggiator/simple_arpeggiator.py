@@ -8,14 +8,14 @@ import sounddevice as sd
 import time
 import threading
 from config import Config
-from chord_detector import ChordDetector
+from enhanced_chord_detector import EnhancedChordDetector
 from .arpeggio_engine import ArpeggioEngine
 from .synth_engine import SynthEngine
 
 class SimpleGuitarArpeggiator:
     def __init__(self):
         self.config = Config()
-        self.chord_detector = ChordDetector(self.config)
+        self.chord_detector = EnhancedChordDetector(self.config.sample_rate)
         self.arpeggio_engine = ArpeggioEngine(self.config)
         self.synth_engine = SynthEngine(self.config)
         
@@ -98,7 +98,7 @@ class SimpleGuitarArpeggiator:
                                 current_time = time.time()
                                 if current_time - self.last_chord_time > self.chord_cooldown:
                                     # Detect chord
-                                    chord_result = self.chord_detector.detect_chord(audio_1d)
+                                    chord_result = self.chord_detector.detect_chord_from_audio(audio_1d)
                                     
                                     # Process if valid chord detected
                                     if chord_result['valid'] and chord_result['confidence'] > 0.7:
