@@ -82,6 +82,12 @@ class ArpeggiatorController(EffectController):
     def start_arpeggiator(self):
         """Start the working arpeggiator system."""
         try:
+            # Start the main audio processing stream
+            if not self.audio_processor.is_running:
+                self.audio_processor.start_audio(input_device=0, output_device=0)
+                print("🔊 Main audio stream started")
+            
+            # Start the working arpeggiator
             self.working_arpeggiator.start_arpeggiator()
             print("🎸 Working arpeggiator started! Strum chords on your guitar to hear arpeggios.")
         except Exception as e:
@@ -90,8 +96,14 @@ class ArpeggiatorController(EffectController):
     def stop_arpeggiator(self):
         """Stop the working arpeggiator system."""
         try:
+            # Stop the working arpeggiator
             self.working_arpeggiator.stop_arpeggiator()
             print("Arpeggiator stopped")
+            
+            # Stop the main audio stream
+            if self.audio_processor.is_running:
+                self.audio_processor.stop_audio()
+                print("🔊 Main audio stream stopped")
         except Exception as e:
             print(f"Failed to stop arpeggiator: {e}")
             

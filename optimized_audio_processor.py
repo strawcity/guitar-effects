@@ -281,7 +281,37 @@ class OptimizedAudioProcessor:
             # OPTIMIZED: Minimize lock time
             input_audio = indata[:, 0] if indata.ndim > 1 else indata
             
-            # Quick check if effects are active
+            # Check if arpeggiator is active and use working arpeggiator
+            if "arpeggiator" in self.active_effects and hasattr(self, 'working_arpeggiator'):
+                # Use working arpeggiator for audio processing
+                try:
+                    # Get output from working arpeggiator
+                    output_audio = self.working_arpeggiator._generate_output_audio()
+                    
+                    # Ensure output is the right size
+                    if len(output_audio) >= frames:
+                        output_audio = output_audio[:frames]
+                    else:
+                        # Pad with silence if too short
+                        output_audio = np.pad(output_audio, (0, frames - len(output_audio)))
+                    
+                    # Output the arpeggiator audio
+                    if outdata.ndim > 1:
+                        outdata[:, 0] = output_audio
+                    else:
+                        outdata[:frames] = output_audio
+                    return
+                    
+                except Exception as e:
+                    print(f"Working arpeggiator audio error: {e}")
+                    # Fall back to passthrough
+                    if outdata.ndim > 1:
+                        outdata[:, 0] = input_audio[:frames]
+                    else:
+                        outdata[:frames] = input_audio[:frames]
+                    return
+            
+            # Quick check if other effects are active
             if not self.active_effects:
                 # Passthrough mode - no processing needed
                 if outdata.ndim > 1:
@@ -290,7 +320,7 @@ class OptimizedAudioProcessor:
                     outdata[:frames] = input_audio[:frames]
                 return
             
-            # Effects are active - process audio
+            # Other effects are active - process audio
             with self.lock:
                 processed_audio = self.process_audio(input_audio)
                 
