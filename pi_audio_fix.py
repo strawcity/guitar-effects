@@ -188,11 +188,11 @@ def create_test_script(scarlett_device_id):
     print(f"\n🧪 Creating test script...")
     
     test_content = f"""#!/usr/bin/env python3
-"""
+\"\"\"
 Scarlett 2i2 Test Script
 
 This script tests the Scarlett 2i2 integration on your Pi.
-"""
+\"\"\"
 
 import sounddevice as sd
 import numpy as np
