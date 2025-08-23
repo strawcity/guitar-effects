@@ -37,8 +37,11 @@ def find_scarlett_2i2():
         print("💡 Try unplugging and reconnecting")
         return None, None
     
+    print(f"📊 Found {len(scarlett_devices)} Scarlett device(s)")
+    
     # Use the first Scarlett device found
     device_id, device_info = scarlett_devices[0]
+    print(f"🎯 Using device {device_id}: {device_info['name']}")
     return device_id, device_info
 
 def test_scarlett_audio(scarlett_device_id):
@@ -211,7 +214,10 @@ def main():
     print()
     
     # Find Scarlett 2i2
+    print("🔍 Calling find_scarlett_2i2()...")
     scarlett_device_id, device_info = find_scarlett_2i2()
+    print(f"🔍 Returned: device_id={scarlett_device_id}, device_info={device_info}")
+    
     if not scarlett_device_id:
         print("❌ Cannot proceed without Scarlett 2i2")
         return
