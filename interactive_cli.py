@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any
 
 from optimized_audio_processor import OptimizedAudioProcessor
 from config import Config
-from guitar_synth import GuitarSynthController
+from guitar_synth.guitar_synth_controller import GuitarSynthController
 from effect_controller import EffectController
 
 
@@ -20,7 +20,7 @@ from effect_controller import EffectController
 class ArpeggiatorController(EffectController):
     """Controller for the arpeggiator effect."""
     
-    def __init__(self, audio_processor: AudioProcessor):
+    def __init__(self, audio_processor: OptimizedAudioProcessor):
         super().__init__("arpeggiator", audio_processor)
         
     def set_tempo(self, tempo: int):
@@ -102,7 +102,7 @@ Arpeggiator Commands:
 class DelayController(EffectController):
     """Controller for delay effects."""
     
-    def __init__(self, delay_type: str, audio_processor: AudioProcessor):
+    def __init__(self, delay_type: str, audio_processor: OptimizedAudioProcessor):
         super().__init__(f"{delay_type}", audio_processor)
         self.delay_type = delay_type
         

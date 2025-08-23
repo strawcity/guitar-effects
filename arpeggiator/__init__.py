@@ -8,10 +8,12 @@ from .arpeggio_engine import ArpeggioEngine
 from .synth_engine import SynthEngine
 from .callback_arpeggiator import CallbackGuitarArpeggiator
 from .simple_arpeggiator import SimpleGuitarArpeggiator
+from .working_arpeggiator import WorkingArpeggiatorSystem
 
 __all__ = [
     'ArpeggioEngine',
     'SynthEngine', 
     'CallbackGuitarArpeggiator',
-    'SimpleGuitarArpeggiator'
+    'SimpleGuitarArpeggiator',
+    'WorkingArpeggiatorSystem'
 ]

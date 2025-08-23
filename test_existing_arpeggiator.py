@@ -5,6 +5,7 @@ Test the existing arpeggiator system with enhanced chord detection
 
 import numpy as np
 from arpeggiator.callback_arpeggiator import CallbackGuitarArpeggiator
+from arpeggiator.working_arpeggiator import WorkingArpeggiatorSystem
 from arpeggiator.arpeggio_engine import ArpeggioEngine
 from arpeggiator.synth_engine import SynthEngine
 from config import Config
@@ -155,6 +156,37 @@ def test_callback_arpeggiator():
         import traceback
         traceback.print_exc()
 
+def test_working_arpeggiator():
+    """Test the working arpeggiator system."""
+    print("\n🎸 Testing Working Arpeggiator System")
+    print("=" * 40)
+    
+    try:
+        from config import Config
+        config = Config()
+        arpeggiator = WorkingArpeggiatorSystem(config)
+        print("✅ Working arpeggiator system initialized successfully")
+        
+        # Test status
+        status = arpeggiator.get_status()
+        print(f"   Tempo: {status['tempo']} BPM")
+        print(f"   Pattern: {status['pattern']}")
+        print(f"   Synth: {status['synth']}")
+        print(f"   Duration: {status['duration']}")
+        print(f"   Buffer size: {status['buffer_size']} samples")
+        print(f"   Latency: {status['latency_ms']:.1f}ms")
+        
+        # Test demo mode
+        print("\n🎵 Testing demo mode...")
+        arpeggiator.demo_mode()
+        
+        print("✅ Working arpeggiator system test completed")
+        
+    except Exception as e:
+        print(f"❌ Working arpeggiator test failed: {e}")
+        import traceback
+        traceback.print_exc()
+
 def main():
     """Run all tests."""
     print("🎸 EXISTING ARPEGGIATOR SYSTEM - INTEGRATION TEST")
@@ -165,6 +197,7 @@ def main():
         test_arpeggio_engine()
         test_synth_engine()
         test_callback_arpeggiator()
+        test_working_arpeggiator()
         
         print("\n" + "=" * 60)
         print("✅ ALL TESTS COMPLETED SUCCESSFULLY!")

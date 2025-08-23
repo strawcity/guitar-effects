@@ -14,7 +14,7 @@ from typing import Optional, Dict, Any
 import warnings
 warnings.filterwarnings('ignore')
 
-from arpeggiator import ArpeggioEngine, SynthEngine
+from arpeggiator import ArpeggioEngine, SynthEngine, WorkingArpeggiatorSystem
 from delay import (BasicDelay, TapeDelay, MultiTapDelay, 
                    TempoSyncedDelay, StereoDelay)
 from guitar_synth import GuitarSynth
@@ -42,6 +42,9 @@ class OptimizedAudioProcessor:
         
         # Guitar synth effect
         self.guitar_synth = GuitarSynth(sample_rate=sample_rate)
+        
+        # Working arpeggiator system
+        self.working_arpeggiator = WorkingArpeggiatorSystem(config, sample_rate)
         
         # Current effect state
         self.current_effect = "arpeggiator"
@@ -88,8 +91,10 @@ class OptimizedAudioProcessor:
     def start_effect(self, effect_name: str):
         """Start a specific effect."""
         if effect_name == "arpeggiator":
+            # Start the working arpeggiator system
+            self.working_arpeggiator.start_arpeggiator()
             self.active_effects.add("arpeggiator")
-            print("Arpeggiator started")
+            print("🎸 Working arpeggiator started with enhanced chord detection!")
         elif effect_name in self.delay_effects:
             self.active_effects.add(effect_name)
             print(f"{effect_name} started")
@@ -102,6 +107,9 @@ class OptimizedAudioProcessor:
     def stop_effect(self, effect_name: str):
         """Stop a specific effect."""
         if effect_name in self.active_effects:
+            if effect_name == "arpeggiator":
+                # Stop the working arpeggiator system
+                self.working_arpeggiator.stop_arpeggiator()
             self.active_effects.remove(effect_name)
             print(f"{effect_name} stopped")
         else:
@@ -111,15 +119,19 @@ class OptimizedAudioProcessor:
         """Set an arpeggiator parameter."""
         if param_name == "tempo":
             self.tempo = max(60, min(200, value))
+            self.working_arpeggiator.set_tempo(value)
             print(f"Tempo set to {self.tempo} BPM")
         elif param_name == "pattern":
             self.pattern = value
+            self.working_arpeggiator.set_pattern(value)
             print(f"Pattern set to {value}")
         elif param_name == "synth":
             self.synth_type = value
+            self.working_arpeggiator.set_synth(value)
             print(f"Synth type set to {value}")
         elif param_name == "duration":
             self.duration = max(0.5, min(10.0, value))
+            self.working_arpeggiator.set_duration(value)
             print(f"Duration set to {self.duration} seconds")
         else:
             print(f"Unknown arpeggiator parameter: {param_name}")
@@ -343,17 +355,8 @@ class OptimizedAudioProcessor:
     def demo_mode(self):
         """Run demo mode with C major chord."""
         if "arpeggiator" in self.active_effects:
-            # Create demo chord data
-            demo_chord = {
-                'valid': True,
-                'root': 'C',
-                'quality': 'major',
-                'confidence': 0.9,
-                'notes': ['C', 'E', 'G']
-            }
-            
-            self.update_chord(demo_chord)
-            print("Demo mode: C major chord arpeggio")
+            # Use the working arpeggiator demo mode
+            self.working_arpeggiator.demo_mode()
         else:
             print("Arpeggiator must be active for demo mode")
             
@@ -377,7 +380,7 @@ class OptimizedAudioProcessor:
             
     def get_status(self) -> Dict[str, Any]:
         """Get overall system status."""
-        return {
+        status = {
             "current_effect": self.current_effect,
             "active_effects": list(self.active_effects),
             "tempo": self.tempo,
@@ -389,6 +392,19 @@ class OptimizedAudioProcessor:
             "buffer_size": self.buffer_size,
             "latency_ms": self.buffer_size / self.sample_rate * 1000
         }
+        
+        # Add working arpeggiator status if it's active
+        if "arpeggiator" in self.active_effects:
+            arpeggiator_status = self.working_arpeggiator.get_status()
+            status.update({
+                "arpeggiator_running": arpeggiator_status.get("running", False),
+                "arpeggiator_chord": arpeggiator_status.get("current_chord"),
+                "arpeggiator_tempo": arpeggiator_status.get("tempo"),
+                "arpeggiator_pattern": arpeggiator_status.get("pattern"),
+                "arpeggiator_synth": arpeggiator_status.get("synth")
+            })
+        
+        return status
         
     def set_guitar_synth_parameter(self, param_name: str, value):
         """Set a guitar synth parameter."""

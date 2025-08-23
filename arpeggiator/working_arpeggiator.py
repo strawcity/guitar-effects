@@ -15,7 +15,8 @@ import warnings
 warnings.filterwarnings('ignore')
 
 from enhanced_chord_detector import EnhancedChordDetector
-from arpeggiator import ArpeggioEngine, SynthEngine
+from .arpeggio_engine import ArpeggioEngine
+from .synth_engine import SynthEngine
 
 
 class WorkingArpeggiatorSystem:
@@ -23,7 +24,8 @@ class WorkingArpeggiatorSystem:
     Complete working arpeggiator system that detects chords and generates arpeggios.
     """
     
-    def __init__(self, sample_rate: int = 44100):
+    def __init__(self, config, sample_rate: int = 48000):
+        self.config = config
         self.sample_rate = sample_rate
         
         # Initialize chord detector
@@ -259,7 +261,8 @@ class WorkingArpeggiatorSystem:
             'quality': 'major',
             'confidence': 0.9,
             'notes': ['C', 'E', 'G'],
-            'symbol': 'C'
+            'symbol': 'C',
+            'timestamp': time.time()
         }
         
         # Generate arpeggio
@@ -329,7 +332,10 @@ Working Arpeggiator System Commands:
 
 def main():
     """Test the working arpeggiator system."""
-    arpeggiator = WorkingArpeggiatorSystem()
+    from config import Config
+    
+    config = Config()
+    arpeggiator = WorkingArpeggiatorSystem(config)
     
     print("🎸 Working Arpeggiator System ready!")
     print("💡 This system actually works and produces audible arpeggios")
