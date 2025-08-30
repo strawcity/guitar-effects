@@ -1,49 +1,41 @@
-# 🎸 Guitar Effects System
+# 🎸 Guitar Delay Effects System
 
-A comprehensive real-time guitar effects processing system featuring chord
-detection, arpeggio generation, and professional-quality delay effects. This
-system automatically detects guitar chords, generates electronic arpeggios, and
-applies sophisticated delay processing in real-time. **Now with full Raspberry
-Pi support including GPIO button controls and an extensive delay effects
-package!**
+A comprehensive real-time guitar delay effects processing system featuring
+professional-quality delay algorithms. This system provides multiple delay
+effect types with real-time parameter control and ultra-low latency processing.
+**Now with full Raspberry Pi support including GPIO button controls and an
+extensive delay effects package!**
 
 ## Features
 
-### 🎸 **Core Guitar Processing**
-
-- **Real-time Chord Detection**: **NEW!** Professional-grade accuracy using
-  piano key frequencies, multiple detection algorithms (FFT, autocorrelation,
-  YIN), and harmonic analysis
-- **Working Arpeggiator System**: **NEW!** Complete real-time system that
-  actually works - detects chords and generates audible arpeggios
-- **Multiple Arpeggio Patterns**: 11 different arpeggio patterns including
-  classic, trance, dubstep, and ambient styles
-- **Synthesizer Engine**: 9 different synthesizer types (saw, square, sine,
-  triangle, FM, pluck, pad, lead, bass)
-- **Ultra-Low Latency**: **NEW!** 5.8ms audio processing latency (vs 93ms in old
-  system)
-
 ### 🎛️ **Professional Delay Effects Package**
 
-- **Basic Delay**: Clean echo effects with configurable delay time and feedback
-- **Tape Delay**: Vintage tape-style delay with saturation and modulation
-- **Multi-Tap Delay**: Complex delay patterns with multiple delay lines
-- **Tempo-Synced Delay**: Musical timing synchronization with note divisions
-- **Stereo Delay**: Ping-pong and stereo width enhancement effects
+- **Basic Delay**: Clean echo effects with stereo separation and configurable
+  delay time and feedback
+- **Tape Delay**: Vintage tape-style delay with saturation, modulation, and
+  stereo phase effects
+- **Multi-Tap Delay**: Complex delay patterns with multiple delay lines and
+  stereo panning
+- **Tempo-Synced Delay**: Musical timing synchronization with tempo-based stereo
+  modulation
+- **Stereo Delay**: Ping-pong and stereo width enhancement effects with
+  independent left/right delays
 
 ### ⚙️ **System Features**
 
-- **Configurable Parameters**: Adjustable tempo (60-200 BPM), pattern selection,
-  synth type, and duration
+- **Configurable Parameters**: Adjustable delay time (0.1-2.0s), feedback
+  (0.0-0.9), and wet mix (0.0-1.0)
+- **Stereo Processing**: All effects output in stereo with spatial separation
+  and width control
 - **Cross-Platform Support**: Full compatibility with macOS, Linux, and
   Raspberry Pi
 - **GPIO Integration**: Physical button controls on Raspberry Pi
-- **Real-time Audio Processing**: **NEW!** Ultra-low-latency audio (5.8ms) using
+- **Real-time Audio Processing**: Ultra-low-latency audio processing using
   optimized audio processor
 - **Smart Audio Detection**: Platform-specific audio device detection and
   optimization
-- **Enhanced Chord Detection**: **NEW!** Professional-grade accuracy using piano
-  key frequencies and multiple detection algorithms
+- **Interactive CLI**: Menu-driven interface for easy effect control and
+  parameter adjustment
 
 ## System Architecture
 
@@ -54,44 +46,24 @@ packages:
 
 1. **Config** (`config.py`): Platform detection, system configuration, and
    Pi-specific optimizations
-2. **EnhancedGuitarDetector** (`enhanced_guitar_detector.py`): **NEW!**
-   Professional-grade note detection using piano key frequencies and multiple
-   algorithms
-3. **EnhancedChordDetector** (`enhanced_chord_detector.py`): **NEW!** Advanced
-   chord recognition with comprehensive chord type support
-4. **ChordDetector** (`chord_detector.py`): Legacy chord detection using
-   optimized FFT
-5. **GPIOInterface** (`gpio_interface.py`): Raspberry Pi GPIO control for
+2. **GPIOInterface** (`gpio_interface.py`): Raspberry Pi GPIO control for
    buttons
-
-### 🎹 **Arpeggiator Package** (`arpeggiator/`)
-
-4. **ArpeggioEngine** (`arpeggiator/arpeggio_engine.py`): Pattern generation and
-   arpeggio sequencing
-5. **SynthEngine** (`arpeggiator/synth_engine.py`): Electronic sound synthesis
-   with multiple waveforms
-6. **WorkingArpeggiatorSystem** (`arpeggiator/working_arpeggiator.py`): **NEW!**
-   Complete working system with real-time chord detection and arpeggio
-   generation
-7. **SimpleArpeggiator** (`arpeggiator/simple_arpeggiator.py`): Basic
-   arpeggiator implementation (legacy)
-8. **CallbackArpeggiator** (`arpeggiator/callback_arpeggiator.py`):
-   Callback-based arpeggiator (legacy)
+3. **Main System** (`main.py`): Primary delay effects processing system
 
 ### 🎛️ **Delay Effects Package** (`delay/`)
 
-8. **BaseDelay** (`delay/base_delay.py`): Abstract base class for all delay
+4. **BaseDelay** (`delay/base_delay.py`): Abstract base class for all delay
    effects
-9. **BasicDelay** (`delay/basic_delay.py`): Simple echo effect with configurable
+5. **BasicDelay** (`delay/basic_delay.py`): Simple echo effect with configurable
    parameters
-10. **TapeDelay** (`delay/tape_delay.py`): Vintage tape-style delay with analog
-    characteristics
-11. **MultiTapDelay** (`delay/multi_tap_delay.py`): Complex multi-tap delay
-    patterns
-12. **TempoSyncedDelay** (`delay/tempo_synced_delay.py`): Musical tempo
-    synchronization
-13. **StereoDelay** (`delay/stereo_delay.py`): Stereo ping-pong and width
-    enhancement
+6. **TapeDelay** (`delay/tape_delay.py`): Vintage tape-style delay with analog
+   characteristics
+7. **MultiTapDelay** (`delay/multi_tap_delay.py`): Complex multi-tap delay
+   patterns
+8. **TempoSyncedDelay** (`delay/tempo_synced_delay.py`): Musical tempo
+   synchronization
+9. **StereoDelay** (`delay/stereo_delay.py`): Stereo ping-pong and width
+   enhancement
 
 ## Installation
 
@@ -162,8 +134,8 @@ above.
 
 ## Delay Effects Package
 
-The guitar effects system now includes a comprehensive delay effects package
-with professional-quality implementations:
+The guitar effects system includes a comprehensive delay effects package with
+professional-quality implementations:
 
 ### 🎯 **Available Delay Effects**
 
@@ -195,6 +167,12 @@ python -m delay.demo
 
 # Run delay effects test suite
 python test_delay_effects.py
+
+# Start the main system
+python main.py
+
+# Use interactive CLI
+python interactive_cli.py
 ```
 
 ### 📚 **Documentation**
@@ -214,7 +192,7 @@ python test_delay_effects.py
 ### Raspberry Pi
 
 - **Audio Backend**: ALSA with hardware acceleration
-- **GPIO Controls**: Physical buttons, volume controls
+- **GPIO Controls**: Physical buttons for delay parameter control
 - **Optimizations**: Performance CPU governor, audio group permissions
 - **Device Priority**: USB audio devices, built-in audio
 
@@ -231,13 +209,8 @@ python test_delay_effects.py
 ```
 🔘 Control Buttons:
    Start/Stop: GPIO 17
-   Tempo Up:   GPIO 22
-   Tempo Down: GPIO 23
-
-🎚️ Audio Controls:
-   Mute:       GPIO 24
-   Volume Up:  GPIO 25
-   Volume Down: GPIO 26
+   Delay Time Up:   GPIO 22
+   Delay Time Down: GPIO 23
 ```
 
 ### Wiring Diagram
@@ -245,11 +218,8 @@ python test_delay_effects.py
 ```
 Raspberry Pi GPIO → Component
     17 → Start/Stop Button (with 10kΩ pull-up)
-    22 → Tempo Up Button (with 10kΩ pull-up)
-    23 → Tempo Down Button (with 10kΩ pull-up)
-    24 → Mute (e.g., relay)
-    25 → Volume Up (e.g., relay)
-    26 → Volume Down (e.g., relay)
+    22 → Delay Time Up Button (with 10kΩ pull-up)
+    23 → Delay Time Down Button (with 10kΩ pull-up)
 ```
 
 ### Component Requirements
@@ -281,11 +251,9 @@ Interactive CLI commands:
 
 ```
 start | stop | status
-tempo <bpm>|+<n>|-<n>
-pattern <name>   (type 'patterns' to list)
-synth <name>     (type 'synths' to list)
-duration <seconds>
-demo | test_audio
+delay <type>   (basic, tape, multi, tempo, stereo)
+time <seconds> | feedback <0-0.9> | wet <0-1.0>
+effects | demo
 quit
 ```
 
@@ -294,34 +262,8 @@ The system will:
 1. **Auto-detect platform** and apply optimizations
 2. **Initialize GPIO** (if on Pi)
 3. **Detect audio devices** based on platform priorities
-4. **Run demo mode** with a C major chord
+4. **Run demo mode** with different delay effects
 5. **Start real-time processing** with guitar input
-
-#### Headless Mode (no screen - Pi only)
-
-Run without screen interaction, controlled entirely by GPIO buttons:
-
-```bash
-python headless_mode.py
-```
-
-**Setup for auto-start on boot:**
-
-```bash
-# Install headless mode service
-./install_headless.sh
-
-# Reboot to enable auto-start
-sudo reboot
-```
-
-**How it works:**
-
-1. **Pi boots** → System starts automatically
-2. **Press START button** → Arpeggiator begins
-3. **Press STOP button** → Arpeggiator stops
-4. **Tempo buttons** → Adjust BPM while running
-5. System status via logs
 
 ### Platform-Specific Behavior
 
@@ -333,7 +275,7 @@ sudo reboot
 
 #### Raspberry Pi
 
-- **Button Controls**: Physical buttons for start/stop and tempo control
+- **Button Controls**: Physical buttons for start/stop and delay time control
 - **Audio Optimization**: ALSA backend with hardware acceleration
 - **GPIO Status**: Real-time button callback handling
 
@@ -342,132 +284,42 @@ sudo reboot
 Once running, you can use these commands:
 
 ```python
-# Set tempo (60-200 BPM)
-arpeggiator.set_tempo(140)
+# Set delay time
+system.set_delay_time(0.8)
 
-# Change arpeggio pattern
-arpeggiator.set_pattern('trance_16th')
+# Change delay effect type
+system.set_delay_effect('tape')
 
-# Change synthesizer type
-arpeggiator.set_synth('pad')
+# Adjust feedback
+system.set_feedback(0.5)
 
-# Adjust duration
-arpeggiator.set_duration(3.0)
+# Adjust wet mix
+system.set_wet_mix(0.7)
 
 # Run demo mode
-arpeggiator.demo_mode()
-
-# Test audio system
-arpeggiator.test_audio_system()
+system.demo_mode()
 
 # Stop the system
-arpeggiator.stop()
+system.stop()
 ```
 
 ### GPIO Commands (Pi Only)
 
 ```python
 # Check GPIO status
-arpeggiator.gpio.get_status()
+system.gpio.get_status()
 
 # Simulate button press (for testing)
-arpeggiator.gpio.simulate_button_press('start')
-
-# LEDs removed; no LED control APIs
+system.gpio.simulate_button_press('start')
 ```
 
-### Headless Mode Features (Pi Only)
+### Available Delay Effects
 
-The headless mode provides complete hands-free operation:
-
-#### **Button Controls:**
-
-- **START (GPIO 17)**: Start the arpeggiator
-- **STOP (GPIO 18)**: Stop the arpeggiator
-- **TEMPO UP (GPIO 22)**: Increase tempo by 10 BPM
-- **TEMPO DOWN (GPIO 23)**: Decrease tempo by 10 BPM
-
-#### **System Behavior:**
-
-- **Auto-start on boot**: System loads automatically when Pi powers on
-- **Button-activated**: Waits for START button before beginning
-- **Real-time control**: Adjust tempo while playing
-- **Error handling**: Errors printed to logs
-
-### Available Patterns
-
-- `up`: Classic ascending arpeggio
-- `down`: Classic descending arpeggio
-- `up_down`: Up then down pattern
-- `down_up`: Down then up pattern
-- `random`: Random note order
-- `octave_up`: Multi-octave ascending
-- `octave_down`: Multi-octave descending
-- `trance_16th`: Trance-style 16th notes
-- `dubstep_chop`: Dubstep-style chopped rhythm
-- `ambient_flow`: Ambient flowing patterns
-- `rock_eighth`: Rock-style eighth notes
-
-### Available Synths
-
-- `saw`: Bright sawtooth wave
-- `square`: Classic square wave
-- `sine`: Pure sine wave
-- `triangle`: Warm triangle wave
-- `fm`: FM synthesis
-- `pluck`: Plucked string simulation
-- `pad`: Rich harmonic pad
-- `lead`: Bright lead sound
-- `bass`: Deep bass sound
-
-## Integrating Delay Effects
-
-The delay effects package can be seamlessly integrated with the main guitar
-effects system to create rich, layered sounds:
-
-### 🎸 **Basic Integration Example**
-
-```python
-from delay import BasicDelay, TapeDelay
-from arpeggiator import ArpeggioEngine, SynthEngine
-
-# Create arpeggiator and delay effects
-arpeggiator = ArpeggioEngine(config)
-synth = SynthEngine(config)
-basic_delay = BasicDelay(delay_time=0.5, feedback=0.3)
-tape_delay = TapeDelay(delay_time=0.3, saturation=0.4)
-
-# Process arpeggio through delay chain
-arpeggio = arpeggiator.generate_arpeggio(chord, 'up', 120, 2.0)
-audio = synth.render_arpeggio(arpeggio, 'pad')
-
-# Apply delay effects
-audio_with_basic = basic_delay.process_buffer(audio)
-final_audio = tape_delay.process_buffer(audio_with_basic)
-```
-
-### 🎛️ **Advanced Delay Chains**
-
-```python
-# Create a multi-tap delay for rhythmic effects
-multi_delay = MultiTapDelay()
-multi_delay.sync_taps_to_tempo(120.0, ['1/4', '1/2', '3/4'])
-
-# Tempo-synced delay for musical timing
-tempo_delay = TempoSyncedDelay(bpm=120.0, note_division='1/8', swing=0.2)
-
-# Stereo delay for spatial effects
-stereo_delay = StereoDelay(left_delay=0.3, right_delay=0.6, ping_pong=True)
-```
-
-### 🔄 **Real-time Parameter Control**
-
-```python
-# Adjust delay parameters in real-time
-basic_delay.set_parameters(delay_time=0.8, feedback=0.5, wet_mix=0.7)
-tape_delay.set_tape_parameters(saturation=0.6, wow_rate=1.0)
-multi_delay.sync_taps_to_tempo(140.0, ['1/16', '1/8', '1/4'])
-```
+- `basic`: Clean echo effect with configurable parameters
+- `tape`: Vintage tape-style delay with analog characteristics
+- `multi`: Multi-tap delay with complex patterns
+- `tempo`: Tempo-synced delay for musical timing
+- `stereo`: Stereo ping-pong and width enhancement
 
 ## Testing
 
@@ -489,10 +341,8 @@ python -m delay.demo
 **Main System Tests** (`test_system.py`):
 
 - Configuration and platform detection
-- Chord detection algorithms
-- Arpeggiator engine functionality
-- Synthesizer engine performance
 - GPIO interface (on Pi)
+- Audio device detection
 
 **Delay Effects Tests** (`test_delay_effects.py`):
 
@@ -508,13 +358,6 @@ python -m delay.demo
 - Audio processing demonstrations
 - Integration examples
 
-- Configuration system
-- Chord detection with synthetic audio
-- Arpeggio pattern generation
-- Synthesizer engine
-- Full system integration
-- GPIO functionality (on Pi)
-
 ## Audio Setup
 
 ### Scarlett 2i2 Monitor Output Setup
@@ -524,13 +367,13 @@ output audio through the Scarlett 2i2's monitor outputs:
 
 1. **Connect your headphones** to the Scarlett 2i2's monitor jack
 2. **Set the Scarlett 2i2 Direct Monitor** to OFF (no pass-through needed)
-3. **The arpeggiator output** will be sent to the monitor outputs
-4. **You'll hear** the generated arpeggios when you strum a chord
+3. **The delay effects output** will be sent to the monitor outputs
+4. **You'll hear** the processed delay effects when you play guitar
 
 **Audio Flow:**
 
 ```
-Guitar → Scarlett 2i2 Input → Raspberry Pi → Chord Detection → Arpeggio Generation → Scarlett 2i2 Output → Monitor/Headphones
+Guitar → Scarlett 2i2 Input → Raspberry Pi → Delay Processing → Scarlett 2i2 Output → Monitor/Headphones
 ```
 
 ### Platform-Specific Audio Configuration
@@ -573,7 +416,7 @@ For best results:
 ### Output Device Setup
 
 - **System Volume**: Adjust system volume as needed
-- **Audio Routing**: Clean arpeggio output only (no pass-through)
+- **Audio Routing**: Clean delay output only (no pass-through)
 - **Latency**: Platform-optimized buffer sizes for stability vs. performance
 
 ## Configuration
@@ -583,11 +426,9 @@ Edit `config.py` to customize platform-specific and general settings:
 ### General Settings
 
 - **Sample Rate**: 48000 Hz (configurable)
-- **Chord Detection**: Confidence threshold (default: 0.6)
-- **Chord Hold Time**: 0.5 seconds (configurable)
-- **Default Tempo**: 120 BPM (60-200 range)
-- **Default Pattern**: 'up' arpeggio pattern
-- **Default Synth**: 'saw' synthesizer type
+- **Default Delay Time**: 0.5 seconds (0.1-2.0 range)
+- **Default Feedback**: 0.3 (0.0-0.9 range)
+- **Default Wet Mix**: 0.6 (0.0-1.0 range)
 
 ### Platform-Specific Settings
 
@@ -613,56 +454,15 @@ Edit `config.py` to customize platform-specific and general settings:
 
 ```python
 # Button pins for control
-self.button_pins = {'start': 17, 'stop': 18, 'tempo_up': 22, 'tempo_down': 23}
-
-# Audio interface pins
-self.audio_interface_pins = {'mute': 24, 'volume_up': 25, 'volume_down': 26}
+self.button_pins = {'start': 17, 'stop': 18, 'delay_up': 22, 'delay_down': 23}
 ```
-
-### Keyboard Controls (No Physical Buttons Required)
-
-Since you don't have physical GPIO buttons yet, the system includes full
-keyboard control:
-
-#### **Quick Commands:**
-
-- `gain+` / `gain-` : Adjust gain by 0.5x
-- `gain++` / `gain--` : Adjust gain by 1.0x
-- `gain=5.0` : Set specific gain value
-- `auto` : Auto-adjust gain for optimal detection
-- `status` : Show current gain and chord detection status
-
-#### **Interactive Gain Control:**
-
-For detailed gain testing without the main program:
-
-```bash
-python interactive_gain_control.py
-```
-
-This standalone tool lets you:
-
-- Monitor audio levels in real-time
-- Test different gain settings
-- See the effect of gain changes on your signal
-- Find the optimal gain for your setup
 
 ## Technical Details
-
-### Chord Detection
-
-- **Simple but effective detection** using optimized FFT analysis
-- **Guitar-optimized algorithms** for accurate frequency detection
-- **Harmonic analysis** with chord structure recognition
-- **Real-time processing** with minimal latency
-- **High accuracy** for major, minor, and extended chords
-- **No external dependencies** - reliable and fast
 
 ### Audio Processing
 
 - Real-time streaming with configurable buffer sizes
 - Automatic audio normalization to prevent clipping
-- ADSR envelope generation for natural sound shaping
 - Multi-threaded audio processing for low latency
 
 ### Performance
@@ -692,8 +492,7 @@ This standalone tool lets you:
 1. **Import errors**: Ensure all dependencies are installed
 2. **Audio device not found**: Check system audio settings
 3. **High latency**: Reduce chunk size in config (may affect stability)
-4. **Poor chord detection**: Adjust confidence threshold and ensure clean input
-   signal
+4. **Poor audio quality**: Check input gain levels and signal quality
 
 #### macOS Specific
 
@@ -742,10 +541,11 @@ This standalone tool lets you:
 
 ### Debug Mode
 
-Enable debug output by modifying the confidence threshold in `config.py`:
+Enable debug output by modifying the delay parameters in `config.py`:
 
 ```python
-self.min_chord_confidence = 0.3  # Lower threshold for more detections
+self.default_delay_time = 0.3  # Shorter delay for testing
+self.default_feedback = 0.2    # Lower feedback for testing
 ```
 
 ### Platform-Specific Debugging
@@ -775,21 +575,14 @@ python -c "import sounddevice as sd; sd.default.device = 'default'; print('Audio
 
 ## Development
 
-### Adding New Patterns
+### Adding New Delay Effects
 
-To add a new arpeggio pattern:
+To add a new delay effect:
 
-1. Add the pattern function to `ArpeggioEngine`
-2. Register it in the `patterns` dictionary
-3. Follow the existing pattern function signature
-
-### Adding New Synths
-
-To add a new synthesizer type:
-
-1. Add the synthesis function to `SynthEngine`
-2. Register it in the `synth_types` dictionary
-3. Follow the existing synthesis function signature
+1. Create a new class inheriting from `BaseDelay`
+2. Implement the required methods (`process_buffer`, `set_parameters`)
+3. Add the effect to the main system's effect selection
+4. Update the interactive CLI to support the new effect
 
 ### Adding GPIO Components (Pi Only)
 
@@ -819,7 +612,8 @@ self.gpio.register_button_callback('sensor', self.handle_sensor_event)
 
 ## Future Development
 
-The guitar effects system is designed for continuous expansion and enhancement:
+The guitar delay effects system is designed for continuous expansion and
+enhancement:
 
 ### 🚀 **Planned Effects Packages**
 
@@ -844,13 +638,6 @@ The guitar effects system is designed for continuous expansion and enhancement:
 - **Network Control**: Remote control via web interface or mobile app
 - **Recording Integration**: Direct-to-DAW recording capabilities
 
-### 🎵 **Musical Features**
-
-- **Advanced Chord Recognition**: Extended chord types and voicings
-- **Rhythm Analysis**: Beat detection and groove synchronization
-- **Harmonic Analysis**: Key detection and scale suggestions
-- **Performance Modes**: Live performance and studio recording modes
-
 ## License
 
 This project is open source. See LICENSE file for details.
@@ -868,5 +655,5 @@ Contributions are welcome! Please:
 ## Acknowledgments
 
 - Built with NumPy, SciPy, and sounddevice
-- Inspired by classic arpeggiators and modern music production tools
+- Inspired by classic delay effects and modern music production tools
 - Designed for real-time performance and creative expression

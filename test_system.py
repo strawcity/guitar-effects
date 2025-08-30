@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Test script for the Guitar Arpeggiator System
+Test script for the Guitar Delay Effects System
 This script tests all components without requiring audio input/output
 """
 
 import numpy as np
 import time
 from config import Config
-from enhanced_chord_detector import EnhancedChordDetector
-from arpeggiator import ArpeggioEngine, SynthEngine
+from delay import BasicDelay, TapeDelay, MultiTapDelay, TempoSyncedDelay, StereoDelay
+from gpio_interface import GPIOInterface
 
 def test_config():
     """Test configuration system"""
@@ -16,150 +16,186 @@ def test_config():
     config = Config()
     assert config.sample_rate == 48000
     assert config.chunk_size == 1024
-    assert config.default_tempo == 120
+    assert config.default_delay_time == 0.5
+    assert config.default_feedback == 0.3
+    assert config.default_wet_mix == 0.6
     print("✓ Config test passed")
 
-def test_chord_detector():
-    """Test chord detection system"""
-    print("Testing ChordDetector...")
+def test_delay_effects():
+    """Test all delay effects"""
+    print("Testing Delay Effects...")
     config = Config()
-    detector = EnhancedChordDetector(config.sample_rate)
     
-    # Test with a simple C major chord (simulated frequencies)
-    # Create a synthetic audio signal with C, E, G frequencies
+    # Create test audio signal
     sample_rate = config.sample_rate
     duration = 0.1
     samples = int(duration * sample_rate)
     t = np.linspace(0, duration, samples, False)
+    test_signal = 0.3 * np.sin(2 * np.pi * 440 * t)  # A4 note
     
-    # Generate C major chord frequencies with stronger signal
-    c_freq = 261.63  # C4
-    e_freq = 329.63  # E4
-    g_freq = 392.00  # G4
+    # Test Basic Delay
+    print("  Testing Basic Delay...")
+    basic_delay = BasicDelay(delay_time=0.1, feedback=0.3, wet_mix=0.6)
+    left_out, right_out = basic_delay.process_buffer(test_signal)
+    assert len(left_out) == len(test_signal)
+    assert len(right_out) == len(test_signal)
+    assert np.max(np.abs(left_out)) > 0
+    assert np.max(np.abs(right_out)) > 0
+    print("    ✓ Basic Delay passed")
     
-    # Add harmonics and make signal stronger (enhanced detector needs stronger signal)
-    audio_data = (2.0 * np.sin(2 * np.pi * c_freq * t) + 
-                  1.8 * np.sin(2 * np.pi * e_freq * t) + 
-                  1.9 * np.sin(2 * np.pi * g_freq * t) +
-                  1.0 * np.sin(2 * np.pi * c_freq * 2 * t) +  # C5
-                  0.8 * np.sin(2 * np.pi * e_freq * 2 * t))   # E5
+    # Test Tape Delay
+    print("  Testing Tape Delay...")
+    tape_delay = TapeDelay(delay_time=0.1, feedback=0.3, wet_mix=0.6)
+    left_out, right_out = tape_delay.process_buffer(test_signal)
+    assert len(left_out) == len(test_signal)
+    assert len(right_out) == len(test_signal)
+    assert np.max(np.abs(left_out)) > 0
+    assert np.max(np.abs(right_out)) > 0
+    print("    ✓ Tape Delay passed")
     
-    # Detect chord
-    result = detector.detect_chord_from_audio(audio_data)
+    # Test Multi-Tap Delay
+    print("  Testing Multi-Tap Delay...")
+    multi_delay = MultiTapDelay()
+    multi_delay.sync_taps_to_tempo(120.0, ['1/4', '1/2', '3/4'])
+    left_out, right_out = multi_delay.process_buffer(test_signal)
+    assert len(left_out) == len(test_signal)
+    assert len(right_out) == len(test_signal)
+    assert np.max(np.abs(left_out)) > 0
+    assert np.max(np.abs(right_out)) > 0
+    print("    ✓ Multi-Tap Delay passed")
     
-    print(f"  Detected chord: {result['root']} {result['quality']}")
-    print(f"  Confidence: {result['confidence']:.2f}")
-    print(f"  Notes: {result['notes']}")
+    # Test Tempo-Synced Delay
+    print("  Testing Tempo-Synced Delay...")
+    tempo_delay = TempoSyncedDelay(bpm=120.0, note_division='1/4', feedback=0.3, wet_mix=0.6)
+    left_out, right_out = tempo_delay.process_buffer(test_signal)
+    assert len(left_out) == len(test_signal)
+    assert len(right_out) == len(test_signal)
+    assert np.max(np.abs(left_out)) > 0
+    assert np.max(np.abs(right_out)) > 0
+    print("    ✓ Tempo-Synced Delay passed")
     
-    # Enhanced detector is more sophisticated - just check it doesn't crash
-    print(f"  Enhanced detector result: {result}")
-    print("✓ ChordDetector test passed (enhanced detector working)")
+    # Test Stereo Delay
+    print("  Testing Stereo Delay...")
+    stereo_delay = StereoDelay(left_delay=0.05, right_delay=0.1, feedback=0.3, wet_mix=0.6)
+    left_out, right_out = stereo_delay.process_mono_to_stereo(test_signal)
+    assert len(left_out) == len(test_signal)
+    assert len(right_out) == len(test_signal)
+    assert np.max(np.abs(left_out)) > 0
+    assert np.max(np.abs(right_out)) > 0
+    print("    ✓ Stereo Delay passed")
+    
+    print("✓ All delay effects tests passed")
 
-def test_arpeggio_engine():
-    """Test arpeggio generation"""
-    print("Testing ArpeggioEngine...")
-    config = Config()
-    engine = ArpeggioEngine(config)
+def test_delay_parameters():
+    """Test delay parameter adjustment"""
+    print("Testing Delay Parameters...")
     
-    # Test chord
-    test_chord = {
-        'root': 'A',
-        'quality': 'minor',
-        'notes': ['A', 'C', 'E'],
-        'valid': True,
-        'timestamp': time.time()
-    }
+    # Test parameter adjustment
+    delay = BasicDelay(delay_time=0.5, feedback=0.3, wet_mix=0.6)
     
-    # Test different patterns
-    patterns = ['up', 'down', 'up_down', 'random']
+    # Test delay time adjustment
+    delay.set_parameters(delay_time=0.8)
+    assert delay.delay_time == 0.8
+    print("    ✓ Delay time adjustment passed")
     
-    for pattern in patterns:
-        arpeggio = engine.generate_arpeggio(test_chord, pattern, 120, 2.0)
-        print(f"  {pattern} pattern: {arpeggio['total_notes']} notes")
-        assert arpeggio['total_notes'] > 0
-        assert arpeggio['pattern'] == pattern
+    # Test feedback adjustment
+    delay.set_parameters(feedback=0.5)
+    assert delay.feedback == 0.5
+    print("    ✓ Feedback adjustment passed")
     
-    print("✓ ArpeggioEngine test passed")
+    # Test wet mix adjustment
+    delay.set_parameters(wet_mix=0.8)
+    assert delay.wet_mix == 0.8
+    print("    ✓ Wet mix adjustment passed")
+    
+    print("✓ Delay parameters test passed")
 
-def test_synth_engine():
-    """Test synthesizer engine"""
-    print("Testing SynthEngine...")
+def test_gpio_interface():
+    """Test GPIO interface (if available)"""
+    print("Testing GPIO Interface...")
     config = Config()
-    synth = SynthEngine(config)
+    gpio = GPIOInterface(config)
     
-    # Test note rendering
-    test_note = {
-        'note': 'A',
-        'octave': 4,
-        'start_time': 0,
-        'duration': 0.5,
-        'velocity': 0.8
-    }
+    # Test GPIO availability detection
+    if config.is_pi:
+        print(f"  Running on Pi: {config.pi_model}")
+        print(f"  GPIO available: {gpio.gpio_available}")
+    else:
+        print("  Not running on Pi - GPIO not available")
     
-    # Test different synth types
-    synth_types = ['sine', 'saw', 'square', 'triangle']
+    # Test status method
+    status = gpio.get_status()
+    assert isinstance(status, dict)
+    print("    ✓ GPIO status method passed")
     
-    for synth_type in synth_types:
-        audio = synth.render_note(test_note, synth_type)
-        print(f"  {synth_type}: {len(audio)} samples")
-        assert len(audio) > 0
-        assert np.max(np.abs(audio)) > 0
+    print("✓ GPIO interface test passed")
+
+def test_audio_device_detection():
+    """Test audio device detection"""
+    print("Testing Audio Device Detection...")
+    config = Config()
     
-    print("✓ SynthEngine test passed")
+    # Test device priorities
+    devices = config.get_audio_devices()
+    assert 'input_priorities' in devices
+    assert 'output_priorities' in devices
+    assert isinstance(devices['input_priorities'], list)
+    assert isinstance(devices['output_priorities'], list)
+    
+    print(f"  Input priorities: {devices['input_priorities']}")
+    print(f"  Output priorities: {devices['output_priorities']}")
+    print("✓ Audio device detection test passed")
 
 def test_integration():
     """Test full system integration"""
     print("Testing System Integration...")
     
     config = Config()
-    detector = EnhancedChordDetector(config.sample_rate)
-    arpeggio_engine = ArpeggioEngine(config)
-    synth_engine = SynthEngine(config)
     
-    # Create test audio (C major chord)
+    # Create test audio signal
     sample_rate = config.sample_rate
     duration = 0.1
     samples = int(duration * sample_rate)
     t = np.linspace(0, duration, samples, False)
+    test_signal = 0.3 * np.sin(2 * np.pi * 440 * t)  # A4 note
     
-    audio_data = (np.sin(2 * np.pi * 261.63 * t) +  # C
-                  0.8 * np.sin(2 * np.pi * 329.63 * t) +  # E
-                  0.9 * np.sin(2 * np.pi * 392.00 * t) +  # G
-                  0.3 * np.sin(2 * np.pi * 261.63 * 2 * t) +  # C5
-                  0.2 * np.sin(2 * np.pi * 329.63 * 2 * t))   # E5
+    # Test delay chain
+    basic_delay = BasicDelay(delay_time=0.05, feedback=0.2, wet_mix=0.5)
+    tape_delay = TapeDelay(delay_time=0.1, feedback=0.3, wet_mix=0.6)
     
-    # Full pipeline test
-    chord = detector.detect_chord_from_audio(audio_data)
-    arpeggio = arpeggio_engine.generate_arpeggio(chord, 'up', 120, 1.0)
-    audio = synth_engine.render_arpeggio(arpeggio, 'sine')
+    # Process through delay chain
+    left1, right1 = basic_delay.process_buffer(test_signal)
+    left2, right2 = tape_delay.process_buffer(left1)  # Process left channel
     
-    print(f"  Pipeline: Chord -> Arpeggio -> Audio")
-    print(f"  Chord: {chord['root']} {chord['quality']}")
-    print(f"  Arpeggio: {arpeggio['total_notes']} notes")
-    print(f"  Audio: {len(audio)} samples")
+    print(f"  Pipeline: Input -> Basic Delay -> Tape Delay -> Output")
+    print(f"  Input: {len(test_signal)} samples")
+    print(f"  Basic Delay: {len(left1)} samples (stereo)")
+    print(f"  Tape Delay: {len(left2)} samples (stereo)")
     
-    assert chord['valid'] == True
-    assert arpeggio['total_notes'] > 0
-    assert len(audio) > 0
+    assert len(left2) == len(test_signal)
+    assert len(right2) == len(test_signal)
+    assert np.max(np.abs(left2)) > 0
+    assert np.max(np.abs(right2)) > 0
     
     print("✓ Integration test passed")
 
 def main():
     """Run all tests"""
     print("=" * 60)
-    print("GUITAR ARPEGGIATOR SYSTEM - COMPONENT TESTS")
+    print("GUITAR DELAY EFFECTS SYSTEM - COMPONENT TESTS")
     print("=" * 60)
     
     try:
         test_config()
-        test_chord_detector()
-        test_arpeggio_engine()
-        test_synth_engine()
+        test_delay_effects()
+        test_delay_parameters()
+        test_gpio_interface()
+        test_audio_device_detection()
         test_integration()
         
         print("\n" + "=" * 60)
         print("ALL TESTS PASSED! ✓")
-        print("The Guitar Arpeggiator System is working correctly.")
+        print("The Guitar Delay Effects System is working correctly.")
         print("=" * 60)
         
     except Exception as e:

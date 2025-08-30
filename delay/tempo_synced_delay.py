@@ -7,7 +7,7 @@ providing rhythmic echoes that stay in time with the music.
 
 import numpy as np
 from .base_delay import BaseDelay
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 
 class TempoSyncedDelay(BaseDelay):
@@ -157,14 +157,19 @@ class TempoSyncedDelay(BaseDelay):
                 f"Beat: {beat_time*1000:.0f}ms, "
                 f"Note: {self.note_division} ({note_time*1000:.0f}ms)")
                 
-    def process_sample(self, input_sample: float) -> float:
-        """Process a single audio sample through the tempo-synced delay effect."""
+    def process_sample(self, input_sample: float) -> Tuple[float, float]:
+        """Process a single audio sample through the tempo-synced delay effect with stereo output."""
         # Read delayed signal with humanization
         delayed_sample = self._read_delay_buffer()
         
-        # Calculate output (dry + wet)
+        # Calculate base output (dry + wet)
         output_sample = (self.dry_mix * input_sample + 
                         self.wet_mix * delayed_sample)
+        
+        # Apply stereo separation with tempo-based modulation
+        tempo_phase = (self.humanize_phase * 2 * np.pi) % (2 * np.pi)
+        left_sample = output_sample * (1.0 + 0.05 * np.sin(tempo_phase))
+        right_sample = output_sample * (1.0 + 0.05 * np.cos(tempo_phase))
         
         # Write to buffer with feedback
         feedback_sample = input_sample + self.feedback * delayed_sample
@@ -173,7 +178,7 @@ class TempoSyncedDelay(BaseDelay):
         # Update humanization phase
         self._update_humanize_phase()
         
-        return output_sample
+        return left_sample, right_sample
         
     def get_parameters(self) -> dict:
         """Get current parameter values including tempo-specific ones."""

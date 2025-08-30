@@ -5,6 +5,7 @@ A vintage tape-style delay effect with saturation, modulation, and tape-like cha
 """
 
 import numpy as np
+from typing import Tuple
 from .base_delay import BaseDelay
 
 
@@ -149,8 +150,8 @@ class TapeDelay(BaseDelay):
         adjusted_delay = delay_time / self.tape_speed
         super().set_delay_time(adjusted_delay)
         
-    def process_sample(self, input_sample: float) -> float:
-        """Process a single audio sample through the tape delay effect."""
+    def process_sample(self, input_sample: float) -> Tuple[float, float]:
+        """Process a single audio sample through the tape delay effect with stereo output."""
         # Apply tape saturation to input
         saturated_input = self._apply_tape_saturation(input_sample)
         
@@ -161,9 +162,16 @@ class TapeDelay(BaseDelay):
         # Apply tape characteristics to delayed signal
         delayed_sample = self._apply_tape_characteristics(delayed_sample)
         
-        # Calculate output (dry + wet)
+        # Calculate base output (dry + wet)
         output_sample = (self.dry_mix * input_sample + 
                         self.wet_mix * delayed_sample)
+        
+        # Apply stereo separation with slight phase differences for tape effect
+        left_phase = self.wow_phase * 0.1
+        right_phase = self.flutter_phase * 0.05
+        
+        left_sample = output_sample * (1.0 + 0.1 * np.sin(left_phase))
+        right_sample = output_sample * (1.0 + 0.1 * np.cos(right_phase))
         
         # Write to buffer with feedback
         feedback_sample = saturated_input + self.feedback * delayed_sample
@@ -172,7 +180,7 @@ class TapeDelay(BaseDelay):
         # Update tape modulation
         self._update_tape_modulation()
         
-        return output_sample
+        return left_sample, right_sample
         
     def get_parameters(self) -> dict:
         """Get current parameter values including tape-specific ones."""

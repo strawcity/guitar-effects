@@ -32,14 +32,12 @@ class Config:
             self.default_latency = 'high'
             self.blocksize = 1024
         
-        # Detection settings
-        self.min_chord_confidence = 0.6
-        self.chord_hold_time = 0.5  # Seconds to hold chord detection
-        
-        # Arpeggio settings
-        self.default_tempo = 120
-        self.default_pattern = 'up'
-        self.default_synth = 'saw'
+        # Delay effect settings
+        self.default_delay_time = 0.5
+        self.default_feedback = 0.3
+        self.default_wet_mix = 0.6
+        self.max_delay_time = 2.0
+        self.min_delay_time = 0.1
         
         # GPIO settings (Pi only)
         self.gpio_available = self.is_pi

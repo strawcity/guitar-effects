@@ -1,606 +1,319 @@
 #!/usr/bin/env python3
 """
-Enhanced Interactive CLI for Guitar Effects System
+Interactive CLI for Guitar Delay Effects System
 
-Supports multiple effects including arpeggiator and delay effects,
-with a menu-driven interface for easy effect selection and control.
+A menu-driven interface for controlling delay effects with real-time
+parameter adjustment and effect switching.
 """
 
 import threading
 import time
+import numpy as np
 from typing import Optional, Dict, Any
 
-from optimized_audio_processor import OptimizedAudioProcessor
 from config import Config
-from guitar_synth.guitar_synth_controller import GuitarSynthController
-from effect_controller import EffectController
+from delay import BasicDelay, TapeDelay, MultiTapDelay, TempoSyncedDelay, StereoDelay
+from gpio_interface import GPIOInterface
 
-
-
-class ArpeggiatorController(EffectController):
-    """Controller for the arpeggiator effect."""
-    
-    def __init__(self, audio_processor: OptimizedAudioProcessor):
-        super().__init__("arpeggiator", audio_processor)
-        # Get reference to the working arpeggiator system
-        self.working_arpeggiator = audio_processor.working_arpeggiator
-        
-    def set_tempo(self, tempo: int):
-        """Set arpeggiator tempo."""
-        self.working_arpeggiator.set_tempo(tempo)
-        self.audio_processor.set_arpeggiator_parameter("tempo", tempo)
-        
-    def set_pattern(self, pattern: str):
-        """Set arpeggiator pattern."""
-        self.working_arpeggiator.set_pattern(pattern)
-        self.audio_processor.set_arpeggiator_parameter("pattern", pattern)
-        
-    def set_synth(self, synth: str):
-        """Set arpeggiator synth type."""
-        self.working_arpeggiator.set_synth(synth)
-        self.audio_processor.set_arpeggiator_parameter("synth", synth)
-        
-    def set_duration(self, duration: float):
-        """Set arpeggiator duration."""
-        self.working_arpeggiator.set_duration(duration)
-        self.audio_processor.set_arpeggiator_parameter("duration", duration)
-        
-    def demo_mode(self):
-        """Run arpeggiator demo."""
-        try:
-            # Use the working arpeggiator demo mode
-            self.working_arpeggiator.demo_mode()
-            print("🎵 Demo mode: C major chord arpeggio")
-            
-        except Exception as e:
-            print(f"Demo mode error: {e}")
-        
-    def test_audio(self):
-        """Test audio system."""
-        self.working_arpeggiator.test_audio()
-        
-    def list_patterns(self):
-        """List available patterns."""
-        # Get patterns from the working arpeggiator
-        patterns = ["up", "down", "updown", "random"]
-        print("Available patterns:", ", ".join(patterns))
-        
-    def list_synths(self):
-        """List available synths."""
-        # Get synths from the working arpeggiator
-        synths = ["sine", "square", "saw", "triangle"]
-        print("Available synths:", ", ".join(synths))
-        
-    def start(self):
-        """Start the arpeggiator effect (called by CLI)."""
-        self.start_arpeggiator()
-        
-    def stop(self):
-        """Stop the arpeggiator effect (called by CLI)."""
-        self.stop_arpeggiator()
-        
-    def start_arpeggiator(self):
-        """Start the working arpeggiator system."""
-        try:
-            # Start the main audio processing stream
-            if not self.audio_processor.is_running:
-                self.audio_processor.start_audio(input_device=0, output_device=0)
-                print("🔊 Main audio stream started")
-            
-            # Start the working arpeggiator
-            self.working_arpeggiator.start_arpeggiator()
-            print("🎸 Working arpeggiator started! Strum chords on your guitar to hear arpeggios.")
-        except Exception as e:
-            print(f"Failed to start arpeggiator: {e}")
-            
-    def stop_arpeggiator(self):
-        """Stop the working arpeggiator system."""
-        try:
-            # Stop the working arpeggiator
-            self.working_arpeggiator.stop_arpeggiator()
-            print("Arpeggiator stopped")
-            
-            # Stop the main audio stream
-            if self.audio_processor.is_running:
-                self.audio_processor.stop_audio()
-                print("🔊 Main audio stream stopped")
-        except Exception as e:
-            print(f"Failed to stop arpeggiator: {e}")
-            
-    def get_status(self):
-        """Get arpeggiator status."""
-        try:
-            status = self.working_arpeggiator.get_status()
-            print("Arpeggiator Status:")
-            for key, value in status.items():
-                print(f"  {key}: {value}")
-        except Exception as e:
-            print(f"Failed to get status: {e}")
-            
-    def get_help(self) -> str:
-        """Get arpeggiator help."""
-        return """
-Arpeggiator Commands:
-  start                      Start the arpeggiator
-  stop                       Stop the arpeggiator
-  status                     Show current status
-  
-  tempo <bpm>                Set tempo (60-200)
-  tempo +<n> | tempo -<n>    Adjust tempo by n (e.g., tempo +10)
-  
-  pattern <name>             Set pattern (type 'patterns' to list)
-  synth <name>               Set synth (type 'synths' to list)
-  duration <seconds>         Set arpeggio duration in seconds (0.5 - 10.0)
-  
-  demo                       Play demo C major arpeggio once
-  test_audio                 Play a 440Hz test tone
-  
-  patterns                   List available patterns
-  synths                     List available synths
-        """.strip()
-
-
-class DelayController(EffectController):
+class DelayController:
     """Controller for delay effects."""
     
-    def __init__(self, delay_type: str, audio_processor: OptimizedAudioProcessor):
-        super().__init__(f"{delay_type}", audio_processor)
-        self.delay_type = delay_type
-        
-    def set_delay_time(self, delay_time: float):
-        """Set delay time."""
-        self.audio_processor.set_delay_parameter(self.name, "delay_time", delay_time)
-        
-    def set_feedback(self, feedback: float):
-        """Set feedback amount."""
-        self.audio_processor.set_delay_parameter(self.name, "feedback", feedback)
-        
-    def set_wet_mix(self, wet_mix: float):
-        """Set wet/dry mix."""
-        self.audio_processor.set_delay_parameter(self.name, "wet_mix", wet_mix)
-        
-    def set_tape_parameters(self, **kwargs):
-        """Set tape-specific parameters."""
-        for param, value in kwargs.items():
-            self.audio_processor.set_delay_parameter(self.name, param, value)
-            
-    def sync_taps_to_tempo(self, bpm: float, divisions: list = None):
-        """Sync multi-tap delay to tempo."""
-        self.audio_processor.set_delay_parameter(self.name, "sync_tempo", bpm)
-        
-    def set_tempo(self, tempo: float):
-        """Set tempo for tempo-synced delay."""
-        self.audio_processor.set_delay_parameter(self.name, "tempo", tempo)
-        
-    def set_stereo_parameters(self, **kwargs):
-        """Set stereo-specific parameters."""
-        for param, value in kwargs.items():
-            self.audio_processor.set_delay_parameter(self.name, param, value)
-            
-    def get_help(self) -> str:
-        """Get delay effect help."""
-        base_help = f"""
-Delay Effect Commands ({self.delay_type.title()}):
-  start                      Start the delay effect
-  stop                       Stop the delay effect
-  status                     Show current status
-  
-  delay_time <seconds>       Set delay time in seconds
-  feedback <0.0-0.9>         Set feedback amount
-  wet_mix <0.0-1.0>          Set wet/dry mix
-        """.strip()
-        
-        if self.delay_type == "tape":
-            base_help += """
-  saturation <0.0-1.0>       Set tape saturation
-  wow_rate <0.0-2.0>         Set wow modulation rate
-  flutter_rate <0.0-20.0>    Set flutter modulation rate
-  tape_speed <0.5-2.0>       Set tape speed multiplier
-            """.strip()
-        elif self.delay_type == "multi":
-            base_help += """
-  sync_tempo <bpm>           Sync taps to tempo
-  add_tap <time> <level> <pan>  Add new delay tap
-  remove_tap <index>          Remove delay tap
-            """.strip()
-        elif self.delay_type == "tempo":
-            base_help += """
-  tempo <bpm>                Set tempo for sync
-  note_division <name>        Set note division
-  swing <0.0-1.0>            Set swing amount
-  humanize <0.0-1.0>         Set humanization
-            """.strip()
-        elif self.delay_type == "stereo":
-            base_help += """
-  left_delay <seconds>        Set left channel delay
-  right_delay <seconds>       Set right channel delay
-  ping_pong <on/off>          Enable/disable ping-pong
-  stereo_width <0.0-1.0>      Set stereo width
-            """.strip()
-            
-        return base_help
-
-
-class EnhancedInteractiveCLI:
-    """Enhanced CLI supporting multiple effects."""
-    
     def __init__(self):
-        # Initialize audio processor
-        config = Config()
-        self.audio_processor = OptimizedAudioProcessor(config, sample_rate=config.sample_rate)
+        self.config = Config()
+        self.gpio = GPIOInterface(self.config)
         
-        # Create effect controllers
-        self.effects = {
-            "arpeggiator": ArpeggiatorController(self.audio_processor),
-            "basic_delay": DelayController("basic_delay", self.audio_processor),
-            "tape_delay": DelayController("tape_delay", self.audio_processor),
-            "multi_delay": DelayController("multi_delay", self.audio_processor),
-            "tempo_delay": DelayController("tempo_delay", self.audio_processor),
-            "stereo_delay": DelayController("stereo_delay", self.audio_processor),
-            "guitar_synth": GuitarSynthController(self.audio_processor)
-        }
-        self.current_effect = "arpeggiator"
+        # Current delay effect
+        self.current_delay = None
+        self.current_effect_type = 'basic'
         
-        # Don't start audio processing automatically - let user start it when needed
-        # self.audio_thread = None
-        # self.start_audio_processing()
+        # Delay parameters
+        self.delay_time = self.config.default_delay_time
+        self.feedback = self.config.default_feedback
+        self.wet_mix = self.config.default_wet_mix
         
-    def start_audio_processing(self):
-        """Start audio processing in background thread."""
-        # Use Scarlett 2i2 device (device 0) for Pi
-        if self.audio_processor.config.is_pi:
-            self.audio_thread = threading.Thread(
-                target=lambda: self.audio_processor.start_audio(input_device=0, output_device=0), 
-                daemon=True
+        # Audio processing state
+        self.is_running = False
+        self.audio_thread = None
+        
+        # Initialize default delay
+        self.set_delay_effect('basic')
+        
+        print("🎛️ Delay Controller initialized")
+    
+    def set_delay_effect(self, effect_type: str):
+        """Set the current delay effect type."""
+        if effect_type == 'basic':
+            self.current_delay = BasicDelay(
+                delay_time=self.delay_time,
+                feedback=self.feedback,
+                wet_mix=self.wet_mix
+            )
+        elif effect_type == 'tape':
+            self.current_delay = TapeDelay(
+                delay_time=self.delay_time,
+                feedback=self.feedback,
+                wet_mix=self.wet_mix
+            )
+        elif effect_type == 'multi':
+            self.current_delay = MultiTapDelay()
+            self.current_delay.sync_taps_to_tempo(120.0, ['1/4', '1/2', '3/4'])
+        elif effect_type == 'tempo':
+            self.current_delay = TempoSyncedDelay(
+                bpm=120.0,
+                note_division='1/4',
+                feedback=self.feedback,
+                wet_mix=self.wet_mix
+            )
+        elif effect_type == 'stereo':
+            self.current_delay = StereoDelay(
+                left_delay=self.delay_time * 0.5,
+                right_delay=self.delay_time,
+                feedback=self.feedback,
+                wet_mix=self.wet_mix
             )
         else:
-            self.audio_thread = threading.Thread(target=self.audio_processor.start_audio, daemon=True)
+            print(f"❌ Unknown delay effect type: {effect_type}")
+            return
         
-        self.audio_thread.start()
-        print("Audio processing started in background")
-        if self.audio_processor.config.is_pi:
-            print("🎧 Using Scarlett 2i2 (device 0) for audio")
-        
-    def get_current_effect(self) -> EffectController:
-        """Get the currently selected effect."""
-        return self.effects[self.current_effect]
-        
+        self.current_effect_type = effect_type
+        print(f"✅ Set delay effect to: {effect_type}")
+    
+    def set_delay_time(self, time: float):
+        """Set delay time in seconds."""
+        self.delay_time = max(self.config.min_delay_time, 
+                             min(self.config.max_delay_time, time))
+        if self.current_delay:
+            self.current_delay.set_parameters(delay_time=self.delay_time)
+        print(f"🎛️ Delay time: {self.delay_time:.2f}s")
+    
+    def set_feedback(self, feedback: float):
+        """Set feedback amount (0.0-0.9)."""
+        self.feedback = max(0.0, min(0.9, feedback))
+        if self.current_delay:
+            self.current_delay.set_parameters(feedback=self.feedback)
+        print(f"🎛️ Feedback: {self.feedback:.2f}")
+    
+    def set_wet_mix(self, wet_mix: float):
+        """Set wet mix amount (0.0-1.0)."""
+        self.wet_mix = max(0.0, min(1.0, wet_mix))
+        if self.current_delay:
+            self.current_delay.set_parameters(wet_mix=self.wet_mix)
+        print(f"🎛️ Wet mix: {self.wet_mix:.2f}")
+    
     def list_effects(self):
-        """List all available effects."""
-        print("\n=== Available Effects ===")
-        for effect_name, effect in self.effects.items():
-            status = "🟢 Active" if effect.is_active else "🔴 Inactive"
-            print(f"  {effect_name:15} - {status}")
-        print(f"\nCurrent effect: {self.current_effect}")
+        """List available delay effects."""
+        effects = ['basic', 'tape', 'multi', 'tempo', 'stereo']
+        print("Available delay effects:", ", ".join(effects))
+    
+    def get_status(self):
+        """Get current status."""
+        return {
+            'running': self.is_running,
+            'effect_type': self.current_effect_type,
+            'delay_time': self.delay_time,
+            'feedback': self.feedback,
+            'wet_mix': self.wet_mix
+        }
+    
+    def start(self):
+        """Start the delay effects system."""
+        if self.is_running:
+            print("⚠️  System is already running")
+            return
         
-    def select_effect(self, effect_name: str):
-        """Select an effect to control."""
-        if effect_name in self.effects:
-            self.current_effect = effect_name
-            print(f"Selected effect: {effect_name}")
-        else:
-            print(f"Unknown effect: {effect_name}")
-            print("Available effects:", ", ".join(self.effects.keys()))
-            
-    def show_status(self):
-        """Show status of current effect."""
-        effect = self.get_current_effect()
-        status = effect.get_status()
-        
-        print(f"\n=== {effect.name} Status ===")
-        for key, value in status.items():
-            if key != "name":
-                print(f"{key:15}: {value}")
-        print("=" * 30)
-        
-    def print_main_help(self):
-        """Print main help menu."""
-        print("""
-🎸 Guitar Effects System - Interactive CLI
-==========================================
+        self.is_running = True
+        print("🎸 Delay effects system started!")
+    
+    def stop(self):
+        """Stop the delay effects system."""
+        self.is_running = False
+        print("🛑 Delay effects system stopped")
 
-Main Commands:
-  effects                    List all available effects
-  select <effect>            Select effect to control
-  status                     Show current effect status
-  help                       Show effect-specific help
-  
-  start                      Start current effect
-  stop                       Stop current effect
-  
-  quit | q | exit            Exit the CLI
-
-Available Effects:
-  arpeggiator                Chord detection and arpeggio generation
-  basic_delay                Simple echo delay effect
-  tape_delay                 Vintage tape-style delay
-  multi_delay                Multi-tap delay patterns
-  tempo_delay                Tempo-synchronized delay
-  stereo_delay               Stereo ping-pong delay
-  guitar_synth               Guitar synthesizer transformation effect
-
-Type 'select <effect>' to choose an effect, then use 'help' for effect-specific commands.
-        """.strip())
+class EnhancedInteractiveCLI:
+    """Enhanced interactive CLI for guitar delay effects."""
+    
+    def __init__(self):
+        self.config = Config()
+        self.delay_controller = DelayController()
+        self.current_effect = "delay"
         
-    def print_effect_help(self):
-        """Print help for current effect."""
-        effect = self.get_current_effect()
-        print(f"\n=== {effect.name} Help ===")
-        print(effect.get_help())
-        
+        print("🎸 Guitar Delay Effects Interactive CLI")
+        print("=" * 50)
+    
     def run(self):
-        """Run the enhanced CLI."""
-        print("\n🎸 Welcome to Guitar Effects System Interactive CLI!")
-        self.print_main_help()
+        """Run the interactive CLI."""
+        print("\n🎛️ Available commands:")
+        print("  effect <name>     - Switch to effect (delay)")
+        print("  start             - Start the current effect")
+        print("  stop              - Stop the current effect")
+        print("  status            - Show current status")
+        print("  help              - Show this help")
+        print("  quit              - Exit the CLI")
+        print("\n🎛️ Delay-specific commands:")
+        print("  delay <type>      - Set delay type (basic, tape, multi, tempo, stereo)")
+        print("  time <seconds>    - Set delay time")
+        print("  feedback <0-0.9> - Set feedback amount")
+        print("  wet <0-1.0>       - Set wet mix amount")
+        print("  effects           - List available delay effects")
+        print("  demo              - Run delay effects demo")
         
-        try:
-            while True:
-                try:
-                    line = input(f"effects[{self.current_effect}]> ").strip()
-                except EOFError:
-                    line = "quit"
-
-                if not line:
+        while True:
+            try:
+                command = input("\n🎸 > ").strip().lower()
+                if not command:
                     continue
-
-                parts = line.split()
-                cmd = parts[0].lower()
-                args = parts[1:]
-
-                if cmd in ("quit", "q", "exit"):
+                
+                if command == "quit" or command == "exit":
+                    self.delay_controller.stop()
+                    print("👋 Goodbye!")
                     break
-                elif cmd == "help":
-                    self.print_effect_help()
-                elif cmd == "effects":
-                    self.list_effects()
-                elif cmd == "select":
-                    if not args:
-                        print("Usage: select <effect_name>")
-                        self.list_effects()
-                        continue
-                    self.select_effect(args[0])
-                elif cmd == "status":
-                    self.show_status()
-                elif cmd == "start":
-                    self.get_current_effect().start()
-                elif cmd == "stop":
-                    self.get_current_effect().stop()
-                else:
-                    # Try to handle effect-specific commands
-                    self._handle_effect_command(cmd, args)
-                    
-        except KeyboardInterrupt:
-            print("\nInterrupted.")
-        finally:
-            # Stop all effects and audio
-            for effect in self.effects.values():
-                if effect.is_active:
-                    effect.stop()
-            self.audio_processor.stop_audio()
-            print("Goodbye.")
-            
-    def _handle_effect_command(self, cmd: str, args: list):
-        """Handle effect-specific commands."""
-        effect = self.get_current_effect()
+                
+                self.process_command(command)
+                
+            except KeyboardInterrupt:
+                print("\n🛑 Shutting down...")
+                self.delay_controller.stop()
+                break
+            except Exception as e:
+                print(f"❌ Error: {e}")
+    
+    def process_command(self, command: str):
+        """Process a command."""
+        parts = command.split()
+        if not parts:
+            return
         
-        if cmd == "tempo":
-            if not args:
-                print("Usage: tempo <bpm>|+<n>|-<n>")
-                return
-            val = args[0]
-            try:
-                if val.startswith("+") or val.startswith("-"):
-                    delta = int(val)
-                    if hasattr(effect, 'tempo'):
-                        effect.set_tempo(effect.tempo + delta)
-                    else:
-                        print("Current effect doesn't support tempo adjustment")
-                else:
-                    bpm = int(val)
-                    effect.set_tempo(bpm)
-            except ValueError:
-                print("Invalid tempo value.")
-                
-        elif cmd == "delay_time":
-            if not args:
-                print("Usage: delay_time <seconds>")
-                return
-            try:
-                delay_time = float(args[0])
-                effect.set_delay_time(delay_time)
-            except ValueError:
-                print("Invalid delay time value.")
-                
+        cmd = parts[0]
+        args = parts[1:] if len(parts) > 1 else []
+        
+        if cmd == "help":
+            self.show_help()
+        elif cmd == "start":
+            self.delay_controller.start()
+        elif cmd == "stop":
+            self.delay_controller.stop()
+        elif cmd == "status":
+            self.show_status()
+        elif cmd == "delay":
+            if args:
+                self.delay_controller.set_delay_effect(args[0])
+            else:
+                print("❌ Please specify delay type: basic, tape, multi, tempo, stereo")
+        elif cmd == "time":
+            if args:
+                try:
+                    time_val = float(args[0])
+                    self.delay_controller.set_delay_time(time_val)
+                except ValueError:
+                    print("❌ Invalid time value")
+            else:
+                print("❌ Please specify delay time in seconds")
         elif cmd == "feedback":
-            if not args:
-                print("Usage: feedback <0.0-0.9>")
-                return
-            try:
-                feedback = float(args[0])
-                effect.set_feedback(feedback)
-            except ValueError:
-                print("Invalid feedback value.")
-                
-        elif cmd == "wet_mix":
-            if not args:
-                print("Usage: wet_mix <0.0-1.0>")
-                return
-            try:
-                wet_mix = float(args[0])
-                effect.set_wet_mix(wet_mix)
-            except ValueError:
-                print("Invalid wet mix value.")
-                
-        elif cmd == "pattern":
-            if not args:
-                print("Usage: pattern <name>")
-                if hasattr(effect, 'list_patterns'):
-                    effect.list_patterns()
-                return
-            effect.set_pattern(args[0])
-            
-        elif cmd == "synth":
-            if not args:
-                print("Usage: synth <name>")
-                if hasattr(effect, 'list_synths'):
-                    effect.list_synths()
-                return
-            effect.set_synth(args[0])
-            
-        elif cmd == "duration":
-            if not args:
-                print("Usage: duration <seconds>")
-                return
-            try:
-                duration = float(args[0])
-                effect.set_duration(duration)
-            except ValueError:
-                print("Invalid duration value.")
-                
+            if args:
+                try:
+                    feedback_val = float(args[0])
+                    self.delay_controller.set_feedback(feedback_val)
+                except ValueError:
+                    print("❌ Invalid feedback value")
+            else:
+                print("❌ Please specify feedback amount (0.0-0.9)")
+        elif cmd == "wet":
+            if args:
+                try:
+                    wet_val = float(args[0])
+                    self.delay_controller.set_wet_mix(wet_val)
+                except ValueError:
+                    print("❌ Invalid wet mix value")
+            else:
+                print("❌ Please specify wet mix amount (0.0-1.0)")
+        elif cmd == "effects":
+            self.delay_controller.list_effects()
         elif cmd == "demo":
-            if hasattr(effect, 'demo_mode'):
-                effect.demo_mode()
+            self.run_demo()
+        elif cmd == "effect":
+            if args:
+                if args[0] == "delay":
+                    self.current_effect = "delay"
+                    print("✅ Switched to delay effects")
+                else:
+                    print(f"❌ Unknown effect: {args[0]}")
             else:
-                print("Current effect doesn't support demo mode")
-                
-        elif cmd == "test_audio":
-            if hasattr(effect, 'test_audio'):
-                effect.test_audio()
-            else:
-                print("Current effect doesn't support audio testing")
-                
-        elif cmd == "patterns":
-            if hasattr(effect, 'list_patterns'):
-                effect.list_patterns()
-            else:
-                print("Current effect doesn't support patterns")
-                
-        elif cmd == "synths":
-            if hasattr(effect, 'list_synths'):
-                effect.list_synths()
-            else:
-                print("Current effect doesn't support synths")
-                
-        # Guitar synth specific commands
-        elif cmd == "ring_freq":
-            if not args:
-                print("Usage: ring_freq <frequency_hz>")
-                return
-            try:
-                freq = float(args[0])
-                effect.set_ring_frequency(freq)
-            except ValueError:
-                print("Invalid frequency value.")
-                
-        elif cmd == "bit_depth":
-            if not args:
-                print("Usage: bit_depth <1-16>")
-                return
-            try:
-                depth = int(args[0])
-                effect.set_bit_depth(depth)
-            except ValueError:
-                print("Invalid bit depth value.")
-                
-        elif cmd == "sample_rate":
-            if not args:
-                print("Usage: sample_rate <0.1-1.0>")
-                return
-            try:
-                factor = float(args[0])
-                effect.set_sample_rate_reduction(factor)
-            except ValueError:
-                print("Invalid sample rate reduction value.")
-                
-        elif cmd == "wave_shape":
-            if not args:
-                print("Usage: wave_shape <0.0-1.0>")
-                return
-            try:
-                amount = float(args[0])
-                effect.set_wave_shape_amount(amount)
-            except ValueError:
-                print("Invalid wave shape amount value.")
-                
-        elif cmd == "filter_cutoff":
-            if not args:
-                print("Usage: filter_cutoff <frequency_hz>")
-                return
-            try:
-                cutoff = float(args[0])
-                effect.set_filter_cutoff(cutoff)
-            except ValueError:
-                print("Invalid filter cutoff value.")
-                
-        elif cmd == "filter_resonance":
-            if not args:
-                print("Usage: filter_resonance <0.0-1.0>")
-                return
-            try:
-                resonance = float(args[0])
-                effect.set_filter_resonance(resonance)
-            except ValueError:
-                print("Invalid filter resonance value.")
-                
-        elif cmd == "envelope":
-            if not args:
-                print("Usage: envelope <0.0-1.0>")
-                return
-            try:
-                sensitivity = float(args[0])
-                effect.set_envelope_sensitivity(sensitivity)
-            except ValueError:
-                print("Invalid envelope sensitivity value.")
-                
-        elif cmd == "lfo_freq":
-            if not args:
-                print("Usage: lfo_freq <frequency_hz>")
-                return
-            try:
-                freq = float(args[0])
-                effect.set_lfo_frequency(freq)
-            except ValueError:
-                print("Invalid LFO frequency value.")
-                
-        elif cmd == "lfo_depth":
-            if not args:
-                print("Usage: lfo_depth <0.0-1.0>")
-                return
-            try:
-                depth = float(args[0])
-                effect.set_lfo_depth(depth)
-            except ValueError:
-                print("Invalid LFO depth value.")
-                
-        elif cmd == "preset":
-            if not args:
-                print("Usage: preset <name>")
-                if hasattr(effect, 'list_presets'):
-                    effect.list_presets()
-                return
-            effect.set_preset(args[0])
-            
-        elif cmd == "presets":
-            if hasattr(effect, 'list_presets'):
-                effect.list_presets()
-            else:
-                print("Current effect doesn't support presets")
-                
-        elif cmd == "reset":
-            if hasattr(effect, 'reset'):
-                effect.reset()
-            else:
-                print("Current effect doesn't support reset")
-                
+                print("❌ Please specify effect name")
         else:
-            print(f"Unknown command: {cmd}")
-            print("Type 'help' for effect-specific commands")
-
+            print(f"❌ Unknown command: {cmd}")
+            print("💡 Type 'help' for available commands")
+    
+    def show_help(self):
+        """Show help information."""
+        print("\n🎸 Guitar Delay Effects CLI Help")
+        print("=" * 40)
+        print("🎛️ Basic Commands:")
+        print("  start             - Start the delay effects")
+        print("  stop              - Stop the delay effects")
+        print("  status            - Show current status")
+        print("  quit              - Exit the CLI")
+        print("\n🎛️ Delay Control:")
+        print("  delay <type>      - Set delay type")
+        print("  time <seconds>    - Set delay time")
+        print("  feedback <0-0.9>  - Set feedback amount")
+        print("  wet <0-1.0>       - Set wet mix amount")
+        print("  effects           - List available effects")
+        print("  demo              - Run effects demo")
+        print("\n🎛️ Delay Types:")
+        print("  basic             - Clean echo effect")
+        print("  tape              - Vintage tape delay")
+        print("  multi             - Multi-tap delay")
+        print("  tempo             - Tempo-synced delay")
+        print("  stereo            - Stereo ping-pong delay")
+    
+    def show_status(self):
+        """Show current status."""
+        status = self.delay_controller.get_status()
+        print("\n🎛️ Current Status:")
+        print(f"  Running: {status['running']}")
+        print(f"  Effect: {status['effect_type']}")
+        print(f"  Delay Time: {status['delay_time']:.2f}s")
+        print(f"  Feedback: {status['feedback']:.2f}")
+        print(f"  Wet Mix: {status['wet_mix']:.2f}")
+    
+    def run_demo(self):
+        """Run a demo of the delay effects."""
+        print("🎵 Running delay effects demo...")
+        
+        # Create a test signal (sine wave)
+        duration = 2.0
+        sample_rate = self.config.sample_rate
+        t = np.linspace(0, duration, int(sample_rate * duration))
+        test_signal = 0.3 * np.sin(2 * np.pi * 440 * t)  # A4 note
+        
+        # Process through different delay effects
+        effects = ['basic', 'tape', 'multi', 'tempo', 'stereo']
+        
+        for effect in effects:
+            print(f"\n🎛️ Testing {effect} delay...")
+            self.delay_controller.set_delay_effect(effect)
+            
+            # Process the test signal
+            if self.delay_controller.current_delay:
+                try:
+                    if effect == 'stereo':
+                        # Stereo delay needs special handling
+                        left_out, right_out = self.delay_controller.current_delay.process_mono_to_stereo(test_signal)
+                    else:
+                        # All other delays now return stereo output
+                        left_out, right_out = self.delay_controller.current_delay.process_buffer(test_signal)
+                    print(f"✅ {effect} delay processed successfully (stereo)")
+                except Exception as e:
+                    print(f"❌ {effect} delay processing failed: {e}")
+            else:
+                print(f"❌ Failed to create {effect} delay")
+        
+        print("\n🎵 Demo completed!")
 
 def main():
+    """Main entry point."""
     cli = EnhancedInteractiveCLI()
     cli.run()
-
 
 if __name__ == "__main__":
     main()

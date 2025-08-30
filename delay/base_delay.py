@@ -102,7 +102,7 @@ class BaseDelay(ABC):
         self.delay_buffer[self.write_index] = sample
         self.write_index = (self.write_index + 1) % self.buffer_size
         
-    def process_sample(self, input_sample: float) -> float:
+    def process_sample(self, input_sample: float) -> Tuple[float, float]:
         """
         Process a single audio sample through the delay effect.
         
@@ -110,7 +110,7 @@ class BaseDelay(ABC):
             input_sample: Input audio sample
             
         Returns:
-            Processed audio sample
+            Tuple of (left_channel, right_channel) processed audio samples
         """
         # Read delayed signal
         delayed_sample = self._read_delay_buffer()
@@ -126,9 +126,10 @@ class BaseDelay(ABC):
         # Update modulation phase
         self._update_modulation_phase()
         
-        return output_sample
+        # Return stereo output (same signal on both channels for now)
+        return output_sample, output_sample
         
-    def process_buffer(self, input_buffer: np.ndarray) -> np.ndarray:
+    def process_buffer(self, input_buffer: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         Process an entire audio buffer through the delay effect.
         
@@ -136,14 +137,17 @@ class BaseDelay(ABC):
             input_buffer: Input audio buffer
             
         Returns:
-            Processed audio buffer
+            Tuple of (left_channel, right_channel) processed audio buffers
         """
-        output_buffer = np.zeros_like(input_buffer)
+        left_buffer = np.zeros_like(input_buffer)
+        right_buffer = np.zeros_like(input_buffer)
         
         for i in range(len(input_buffer)):
-            output_buffer[i] = self.process_sample(input_buffer[i])
+            left_sample, right_sample = self.process_sample(input_buffer[i])
+            left_buffer[i] = left_sample
+            right_buffer[i] = right_sample
             
-        return output_buffer
+        return left_buffer, right_buffer
         
     def reset(self):
         """Reset the delay buffer and internal state."""
