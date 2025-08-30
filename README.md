@@ -52,18 +52,9 @@ packages:
 
 ### 🎛️ **Delay Effects Package** (`delay/`)
 
-4. **BaseDelay** (`delay/base_delay.py`): Abstract base class for all delay
-   effects
-5. **BasicDelay** (`delay/basic_delay.py`): Simple echo effect with configurable
-   parameters
-6. **TapeDelay** (`delay/tape_delay.py`): Vintage tape-style delay with analog
-   characteristics
-7. **MultiTapDelay** (`delay/multi_tap_delay.py`): Complex multi-tap delay
-   patterns
-8. **TempoSyncedDelay** (`delay/tempo_synced_delay.py`): Musical tempo
-   synchronization
-9. **StereoDelay** (`delay/stereo_delay.py`): Stereo ping-pong and width
-   enhancement
+4. **BaseDelay** (`delay/base_delay.py`): Abstract base class for delay effects
+5. **StereoDelay** (`delay/stereo_delay.py`): Advanced stereo delay with
+   ping-pong, width enhancement, and cross-feedback
 
 ## Installation
 
@@ -134,39 +125,40 @@ above.
 
 ## Delay Effects Package
 
-The guitar effects system includes a comprehensive delay effects package with
-professional-quality implementations:
+The guitar effects system includes a professional-quality stereo delay effect
+with advanced features:
 
-### 🎯 **Available Delay Effects**
+### 🎯 **Stereo Delay Effect**
 
 ```python
-from delay import BasicDelay, TapeDelay, MultiTapDelay, TempoSyncedDelay, StereoDelay
+from delay import StereoDelay
 
-# Basic delay with clean echo
-basic = BasicDelay(delay_time=0.5, feedback=0.3, wet_mix=0.6)
+# Advanced stereo delay with ping-pong and width enhancement
+stereo_delay = StereoDelay(
+    left_delay=0.3,      # Left channel delay time
+    right_delay=0.6,     # Right channel delay time
+    feedback=0.3,        # Feedback amount
+    wet_mix=0.6,         # Wet signal mix
+    ping_pong=True,      # Enable ping-pong pattern
+    stereo_width=0.5,    # Stereo width enhancement
+    cross_feedback=0.2   # Cross-feedback between channels
+)
 
-# Vintage tape delay with analog character
-tape = TapeDelay(delay_time=0.6, saturation=0.4, wow_rate=0.5)
+# Process mono input to stereo output
+left_output, right_output = stereo_delay.process_mono_to_stereo(input_signal)
 
-# Multi-tap with tempo sync
-multi = MultiTapDelay()
-multi.sync_taps_to_tempo(120.0, ['1/4', '1/2', '3/4'])
-
-# Tempo-synced musical delay
-tempo = TempoSyncedDelay(bpm=120.0, note_division='1/4', swing=0.2)
-
-# Stereo ping-pong delay
-stereo = StereoDelay(left_delay=0.3, right_delay=0.6, ping_pong=True)
+# Process stereo input to stereo output
+left_output, right_output = stereo_delay.process_buffer(left_input, right_input)
 ```
 
-### 🚀 **Quick Start with Delay Effects**
+### 🚀 **Quick Start with Stereo Delay**
 
 ```bash
-# Test all delay effects
-python -m delay.demo
-
-# Run delay effects test suite
+# Test stereo delay effects
 python test_delay_effects.py
+
+# Test stereo system
+python test_stereo_system.py
 
 # Start the main system
 python main.py
@@ -178,8 +170,8 @@ python interactive_cli.py
 ### 📚 **Documentation**
 
 - **Package Overview**: `delay/README.md`
-- **Individual Effects**: Each effect has comprehensive docstrings
-- **Examples**: See `delay/demo.py` for usage demonstrations
+- **Stereo Delay**: Comprehensive docstrings and examples
+- **Real-time Control**: Parameter adjustment during playback
 
 ## Platform-Specific Features
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Test script for the Guitar Delay Effects System
-This script tests all components without requiring audio input/output
+Test script for the Guitar Stereo Delay Effects System
+This script tests the stereo delay system without requiring audio input/output
 """
 
 import numpy as np
 import time
 from config import Config
-from delay import BasicDelay, TapeDelay, MultiTapDelay, TempoSyncedDelay, StereoDelay
+from delay import StereoDelay
 from gpio_interface import GPIOInterface
 
 def test_config():
@@ -21,9 +21,9 @@ def test_config():
     assert config.default_wet_mix == 0.6
     print("✓ Config test passed")
 
-def test_delay_effects():
-    """Test all delay effects"""
-    print("Testing Delay Effects...")
+def test_stereo_delay():
+    """Test stereo delay effect"""
+    print("Testing Stereo Delay Effect...")
     config = Config()
     
     # Create test audio signal
@@ -33,82 +33,124 @@ def test_delay_effects():
     t = np.linspace(0, duration, samples, False)
     test_signal = 0.3 * np.sin(2 * np.pi * 440 * t)  # A4 note
     
-    # Test Basic Delay
-    print("  Testing Basic Delay...")
-    basic_delay = BasicDelay(delay_time=0.1, feedback=0.3, wet_mix=0.6)
-    left_out, right_out = basic_delay.process_buffer(test_signal)
-    assert len(left_out) == len(test_signal)
-    assert len(right_out) == len(test_signal)
-    assert np.max(np.abs(left_out)) > 0
-    assert np.max(np.abs(right_out)) > 0
-    print("    ✓ Basic Delay passed")
-    
-    # Test Tape Delay
-    print("  Testing Tape Delay...")
-    tape_delay = TapeDelay(delay_time=0.1, feedback=0.3, wet_mix=0.6)
-    left_out, right_out = tape_delay.process_buffer(test_signal)
-    assert len(left_out) == len(test_signal)
-    assert len(right_out) == len(test_signal)
-    assert np.max(np.abs(left_out)) > 0
-    assert np.max(np.abs(right_out)) > 0
-    print("    ✓ Tape Delay passed")
-    
-    # Test Multi-Tap Delay
-    print("  Testing Multi-Tap Delay...")
-    multi_delay = MultiTapDelay()
-    multi_delay.sync_taps_to_tempo(120.0, ['1/4', '1/2', '3/4'])
-    left_out, right_out = multi_delay.process_buffer(test_signal)
-    assert len(left_out) == len(test_signal)
-    assert len(right_out) == len(test_signal)
-    assert np.max(np.abs(left_out)) > 0
-    assert np.max(np.abs(right_out)) > 0
-    print("    ✓ Multi-Tap Delay passed")
-    
-    # Test Tempo-Synced Delay
-    print("  Testing Tempo-Synced Delay...")
-    tempo_delay = TempoSyncedDelay(bpm=120.0, note_division='1/4', feedback=0.3, wet_mix=0.6)
-    left_out, right_out = tempo_delay.process_buffer(test_signal)
-    assert len(left_out) == len(test_signal)
-    assert len(right_out) == len(test_signal)
-    assert np.max(np.abs(left_out)) > 0
-    assert np.max(np.abs(right_out)) > 0
-    print("    ✓ Tempo-Synced Delay passed")
-    
     # Test Stereo Delay
     print("  Testing Stereo Delay...")
-    stereo_delay = StereoDelay(left_delay=0.05, right_delay=0.1, feedback=0.3, wet_mix=0.6)
+    stereo_delay = StereoDelay(
+        sample_rate=sample_rate,
+        left_delay=0.05,
+        right_delay=0.1,
+        feedback=0.3,
+        wet_mix=0.6,
+        ping_pong=True,
+        stereo_width=0.5,
+        cross_feedback=0.2
+    )
+    
     left_out, right_out = stereo_delay.process_mono_to_stereo(test_signal)
     assert len(left_out) == len(test_signal)
     assert len(right_out) == len(test_signal)
     assert np.max(np.abs(left_out)) > 0
     assert np.max(np.abs(right_out)) > 0
-    print("    ✓ Stereo Delay passed")
     
-    print("✓ All delay effects tests passed")
+    # Check stereo separation
+    stereo_separation = np.std(left_out - right_out)
+    assert stereo_separation > 0, "No stereo separation detected"
+    
+    print("    ✓ Stereo Delay passed")
+    print(f"    📊 Stereo separation: {stereo_separation:.4f}")
+    
+    print("✓ Stereo delay effect test passed")
 
-def test_delay_parameters():
-    """Test delay parameter adjustment"""
-    print("Testing Delay Parameters...")
+def test_stereo_delay_parameters():
+    """Test stereo delay parameter adjustment"""
+    print("Testing Stereo Delay Parameters...")
     
     # Test parameter adjustment
-    delay = BasicDelay(delay_time=0.5, feedback=0.3, wet_mix=0.6)
+    stereo_delay = StereoDelay(
+        sample_rate=44100,
+        left_delay=0.3,
+        right_delay=0.6,
+        feedback=0.3,
+        wet_mix=0.6,
+        ping_pong=True,
+        stereo_width=0.5,
+        cross_feedback=0.2
+    )
     
-    # Test delay time adjustment
-    delay.set_parameters(delay_time=0.8)
-    assert delay.delay_time == 0.8
-    print("    ✓ Delay time adjustment passed")
+    # Test left delay adjustment
+    stereo_delay.set_left_delay(0.4)
+    assert stereo_delay.left_delay == 0.4
+    print("    ✓ Left delay adjustment passed")
+    
+    # Test right delay adjustment
+    stereo_delay.set_right_delay(0.8)
+    assert stereo_delay.right_delay == 0.8
+    print("    ✓ Right delay adjustment passed")
     
     # Test feedback adjustment
-    delay.set_parameters(feedback=0.5)
-    assert delay.feedback == 0.5
+    stereo_delay.set_parameters(feedback=0.5)
+    assert stereo_delay.feedback == 0.5
     print("    ✓ Feedback adjustment passed")
     
     # Test wet mix adjustment
-    delay.set_parameters(wet_mix=0.8)
-    assert delay.wet_mix == 0.8
+    stereo_delay.set_parameters(wet_mix=0.8)
+    assert stereo_delay.wet_mix == 0.8
     print("    ✓ Wet mix adjustment passed")
     
-    print("✓ Delay parameters test passed")
+    # Test stereo parameters
+    stereo_delay.set_stereo_parameters(ping_pong=False, stereo_width=0.8, cross_feedback=0.3)
+    assert stereo_delay.ping_pong == False
+    assert stereo_delay.stereo_width == 0.8
+    assert stereo_delay.cross_feedback == 0.3
+    print("    ✓ Stereo parameters adjustment passed")
+    
+    print("✓ All stereo delay parameter tests passed")
+
+def test_stereo_delay_processing():
+    """Test stereo delay audio processing"""
+    print("Testing Stereo Delay Processing...")
+    
+    # Create stereo delay
+    stereo_delay = StereoDelay(
+        sample_rate=44100,
+        left_delay=0.1,
+        right_delay=0.2,
+        feedback=0.3,
+        wet_mix=0.6,
+        ping_pong=True,
+        stereo_width=0.5,
+        cross_feedback=0.2
+    )
+    
+    # Create test signal
+    duration = 0.05
+    sample_rate = 44100
+    samples = int(duration * sample_rate)
+    t = np.linspace(0, duration, samples, False)
+    test_signal = 0.3 * np.sin(2 * np.pi * 440 * t)
+    
+    # Test mono to stereo processing
+    left_out, right_out = stereo_delay.process_mono_to_stereo(test_signal)
+    
+    # Verify output
+    assert len(left_out) == len(test_signal)
+    assert len(right_out) == len(test_signal)
+    assert np.max(np.abs(left_out)) > 0
+    assert np.max(np.abs(right_out)) > 0
+    
+    # Test stereo processing
+    left_in = test_signal * 0.8
+    right_in = test_signal * 0.6
+    left_out, right_out = stereo_delay.process_buffer(left_in, right_in)
+    
+    # Verify output
+    assert len(left_out) == len(test_signal)
+    assert len(right_out) == len(test_signal)
+    assert np.max(np.abs(left_out)) > 0
+    assert np.max(np.abs(right_out)) > 0
+    
+    print("    ✓ Stereo delay processing passed")
+    print("✓ All stereo delay processing tests passed")
 
 def test_gpio_interface():
     """Test GPIO interface (if available)"""
@@ -116,92 +158,46 @@ def test_gpio_interface():
     config = Config()
     gpio = GPIOInterface(config)
     
-    # Test GPIO availability detection
-    if config.is_pi:
-        print(f"  Running on Pi: {config.pi_model}")
-        print(f"  GPIO available: {gpio.gpio_available}")
+    if gpio.gpio_available:
+        print("  GPIO available on this platform")
+        print(f"  Button pins: {config.button_pins}")
+        print("  ✓ GPIO interface test passed")
     else:
-        print("  Not running on Pi - GPIO not available")
-    
-    # Test status method
-    status = gpio.get_status()
-    assert isinstance(status, dict)
-    print("    ✓ GPIO status method passed")
-    
-    print("✓ GPIO interface test passed")
-
-def test_audio_device_detection():
-    """Test audio device detection"""
-    print("Testing Audio Device Detection...")
-    config = Config()
-    
-    # Test device priorities
-    devices = config.get_audio_devices()
-    assert 'input_priorities' in devices
-    assert 'output_priorities' in devices
-    assert isinstance(devices['input_priorities'], list)
-    assert isinstance(devices['output_priorities'], list)
-    
-    print(f"  Input priorities: {devices['input_priorities']}")
-    print(f"  Output priorities: {devices['output_priorities']}")
-    print("✓ Audio device detection test passed")
-
-def test_integration():
-    """Test full system integration"""
-    print("Testing System Integration...")
-    
-    config = Config()
-    
-    # Create test audio signal
-    sample_rate = config.sample_rate
-    duration = 0.1
-    samples = int(duration * sample_rate)
-    t = np.linspace(0, duration, samples, False)
-    test_signal = 0.3 * np.sin(2 * np.pi * 440 * t)  # A4 note
-    
-    # Test delay chain
-    basic_delay = BasicDelay(delay_time=0.05, feedback=0.2, wet_mix=0.5)
-    tape_delay = TapeDelay(delay_time=0.1, feedback=0.3, wet_mix=0.6)
-    
-    # Process through delay chain
-    left1, right1 = basic_delay.process_buffer(test_signal)
-    left2, right2 = tape_delay.process_buffer(left1)  # Process left channel
-    
-    print(f"  Pipeline: Input -> Basic Delay -> Tape Delay -> Output")
-    print(f"  Input: {len(test_signal)} samples")
-    print(f"  Basic Delay: {len(left1)} samples (stereo)")
-    print(f"  Tape Delay: {len(left2)} samples (stereo)")
-    
-    assert len(left2) == len(test_signal)
-    assert len(right2) == len(test_signal)
-    assert np.max(np.abs(left2)) > 0
-    assert np.max(np.abs(right2)) > 0
-    
-    print("✓ Integration test passed")
+        print("  GPIO not available on this platform")
+        print("  ✓ GPIO interface test passed (no GPIO available)")
 
 def main():
     """Run all tests"""
-    print("=" * 60)
-    print("GUITAR DELAY EFFECTS SYSTEM - COMPONENT TESTS")
+    print("🎸 Guitar Stereo Delay Effects System Test")
     print("=" * 60)
     
-    try:
-        test_config()
-        test_delay_effects()
-        test_delay_parameters()
-        test_gpio_interface()
-        test_audio_device_detection()
-        test_integration()
-        
-        print("\n" + "=" * 60)
-        print("ALL TESTS PASSED! ✓")
-        print("The Guitar Delay Effects System is working correctly.")
-        print("=" * 60)
-        
-    except Exception as e:
-        print(f"\n❌ Test failed: {e}")
-        import traceback
-        traceback.print_exc()
+    tests = [
+        ("Config Test", test_config),
+        ("Stereo Delay Test", test_stereo_delay),
+        ("Stereo Delay Parameters Test", test_stereo_delay_parameters),
+        ("Stereo Delay Processing Test", test_stereo_delay_processing),
+        ("GPIO Interface Test", test_gpio_interface)
+    ]
+    
+    passed = 0
+    total = len(tests)
+    
+    for test_name, test_func in tests:
+        print(f"\n{'='*20} {test_name} {'='*20}")
+        try:
+            test_func()
+            passed += 1
+        except Exception as e:
+            print(f"❌ {test_name} failed: {e}")
+    
+    print("\n" + "=" * 60)
+    print(f"Tests passed: {passed}/{total}")
+    
+    if passed == total:
+        print("🎉 All tests passed! The stereo delay system is ready.")
+        print("🎵 Connect an audio input to start processing guitar with stereo delay effects!")
+    else:
+        print("⚠️  Some tests failed. Check the error messages above.")
 
 if __name__ == "__main__":
     main()

@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-Raspberry Pi Audio Stability Test
+Raspberry Pi Audio Stability Test with Stereo Delay
 
 Tests different buffer sizes to find the optimal setting for your Pi setup.
 This will help identify the minimum buffer size that works without underruns.
+Now includes stereo delay effect processing.
 """
 
 import sounddevice as sd
 import numpy as np
 import time
 import threading
+from delay import StereoDelay
 
 class AudioStabilityTest:
     def __init__(self):
@@ -18,6 +20,18 @@ class AudioStabilityTest:
         self.underrun_count = 0
         self.overflow_count = 0
         self.is_running = False
+        
+        # Initialize stereo delay effect
+        self.stereo_delay = StereoDelay(
+            sample_rate=self.sample_rate,
+            left_delay=0.3,
+            right_delay=0.6,
+            feedback=0.3,
+            wet_mix=0.6,
+            ping_pong=True,
+            stereo_width=0.5,
+            cross_feedback=0.2
+        )
         
     def test_buffer_size(self, buffer_size: int, latency_setting: str = 'high'):
         """Test a specific buffer size for stability."""
@@ -37,12 +51,23 @@ class AudioStabilityTest:
             if status.output_underflow:
                 self.underrun_count += 1
                 
-            # Simple passthrough with slight processing
-            outdata[:] = indata * 0.8  # Slight attenuation
+            # Process through stereo delay effect
+            input_audio = indata[:, 0] if indata.ndim > 1 else indata
+            
+            # Get stereo output from delay
+            left_out, right_out = self.stereo_delay.process_mono_to_stereo(input_audio)
+            
+            # Output stereo audio
+            if outdata.ndim > 1:
+                outdata[:, 0] = left_out[:frames]
+                outdata[:, 1] = right_out[:frames]
+            else:
+                # Mono output - mix L+R
+                outdata[:frames] = (left_out[:frames] + right_out[:frames]) * 0.5
             
         try:
             with sd.Stream(
-                channels=(1, 1),
+                channels=(1, 2),  # Mono input, stereo output
                 samplerate=self.sample_rate,
                 blocksize=buffer_size,
                 dtype=np.float32,
@@ -50,7 +75,7 @@ class AudioStabilityTest:
                 callback=audio_callback
             ) as stream:
                 print(f"🎵 Stream started - listening for {self.test_duration} seconds...")
-                print("💡 Play your guitar or make some noise to test audio flow")
+                print("💡 Play your guitar or make some noise to test stereo delay effect")
                 
                 # Run test
                 start_time = time.time()
@@ -125,10 +150,11 @@ class AudioStabilityTest:
 
 def main():
     """Main test function."""
-    print("🎸 RASPBERRY PI AUDIO STABILITY TEST")
+    print("🎸 RASPBERRY PI AUDIO STABILITY TEST WITH STEREO DELAY")
     print("=" * 60)
     print("This test will help find the best audio settings for your Pi")
     print("Make sure your Scarlett 2i2 is connected and working")
+    print("Stereo delay effect will be active during testing")
     print()
     
     tester = AudioStabilityTest()

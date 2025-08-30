@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Interactive CLI for Guitar Delay Effects System
+Interactive CLI for Guitar Stereo Delay Effects System
 
-A menu-driven interface for controlling delay effects with real-time
-parameter adjustment and effect switching.
+A menu-driven interface for controlling stereo delay effects with real-time
+parameter adjustment.
 """
 
 import threading
@@ -13,24 +13,27 @@ import sounddevice as sd
 from typing import Optional, Dict, Any
 
 from config import Config
-from delay import BasicDelay, TapeDelay, MultiTapDelay, TempoSyncedDelay, StereoDelay
+from delay import StereoDelay
 from gpio_interface import GPIOInterface
 
-class DelayController:
-    """Controller for delay effects."""
+class StereoDelayController:
+    """Controller for stereo delay effects."""
     
     def __init__(self):
         self.config = Config()
         self.gpio = GPIOInterface(self.config)
         
-        # Current delay effect
-        self.current_delay = None
-        self.current_effect_type = 'basic'
+        # Stereo delay effect
+        self.stereo_delay = None
         
-        # Delay parameters
-        self.delay_time = self.config.default_delay_time
+        # Stereo delay parameters
+        self.left_delay = 0.3
+        self.right_delay = 0.6
         self.feedback = self.config.default_feedback
         self.wet_mix = self.config.default_wet_mix
+        self.ping_pong = True
+        self.stereo_width = 0.5
+        self.cross_feedback = 0.2
         
         # Audio processing state
         self.is_running = False
@@ -43,10 +46,10 @@ class DelayController:
         # Auto-detect audio devices
         self.detect_audio_devices()
         
-        # Initialize default delay
-        self.set_delay_effect('basic')
+        # Initialize stereo delay
+        self.initialize_stereo_delay()
         
-        print("🎛️ Delay Controller initialized")
+        print("🎛️ Stereo Delay Controller initialized")
     
     def detect_audio_devices(self):
         """Auto-detect and configure audio devices with platform-specific logic"""
@@ -121,83 +124,86 @@ class DelayController:
                     return i
             return None
     
-    def set_delay_effect(self, effect_type: str):
-        """Set the current delay effect type."""
-        if effect_type == 'basic':
-            self.current_delay = BasicDelay(
-                delay_time=self.delay_time,
-                feedback=self.feedback,
-                wet_mix=self.wet_mix
-            )
-        elif effect_type == 'tape':
-            self.current_delay = TapeDelay(
-                delay_time=self.delay_time,
-                feedback=self.feedback,
-                wet_mix=self.wet_mix
-            )
-        elif effect_type == 'multi':
-            self.current_delay = MultiTapDelay()
-            self.current_delay.sync_taps_to_tempo(120.0, ['1/4', '1/2', '3/4'])
-        elif effect_type == 'tempo':
-            self.current_delay = TempoSyncedDelay(
-                bpm=120.0,
-                note_division='1/4',
-                feedback=self.feedback,
-                wet_mix=self.wet_mix
-            )
-        elif effect_type == 'stereo':
-            self.current_delay = StereoDelay(
-                left_delay=self.delay_time * 0.5,
-                right_delay=self.delay_time,
-                feedback=self.feedback,
-                wet_mix=self.wet_mix
-            )
-        else:
-            print(f"❌ Unknown delay effect type: {effect_type}")
-            return
-        
-        self.current_effect_type = effect_type
-        print(f"✅ Set delay effect to: {effect_type}")
+    def initialize_stereo_delay(self):
+        """Initialize the stereo delay effect"""
+        self.stereo_delay = StereoDelay(
+            sample_rate=self.config.sample_rate,
+            left_delay=self.left_delay,
+            right_delay=self.right_delay,
+            feedback=self.feedback,
+            wet_mix=self.wet_mix,
+            ping_pong=self.ping_pong,
+            stereo_width=self.stereo_width,
+            cross_feedback=self.cross_feedback
+        )
+        print(f"✅ Stereo delay initialized: {self.stereo_delay.get_info()}")
     
-    def set_delay_time(self, time: float):
-        """Set delay time in seconds."""
-        self.delay_time = max(self.config.min_delay_time, 
+    def set_left_delay(self, time: float):
+        """Set left channel delay time in seconds."""
+        self.left_delay = max(self.config.min_delay_time, 
                              min(self.config.max_delay_time, time))
-        if self.current_delay:
-            self.current_delay.set_parameters(delay_time=self.delay_time)
-        print(f"🎛️ Delay time: {self.delay_time:.2f}s")
+        if self.stereo_delay:
+            self.stereo_delay.set_left_delay(self.left_delay)
+        print(f"🎛️ Left delay time: {self.left_delay:.2f}s")
+    
+    def set_right_delay(self, time: float):
+        """Set right channel delay time in seconds."""
+        self.right_delay = max(self.config.min_delay_time, 
+                              min(self.config.max_delay_time, time))
+        if self.stereo_delay:
+            self.stereo_delay.set_right_delay(self.right_delay)
+        print(f"🎛️ Right delay time: {self.right_delay:.2f}s")
     
     def set_feedback(self, feedback: float):
         """Set feedback amount (0.0-0.9)."""
         self.feedback = max(0.0, min(0.9, feedback))
-        if self.current_delay:
-            self.current_delay.set_parameters(feedback=self.feedback)
+        if self.stereo_delay:
+            self.stereo_delay.set_parameters(feedback=self.feedback)
         print(f"🎛️ Feedback: {self.feedback:.2f}")
     
     def set_wet_mix(self, wet_mix: float):
         """Set wet mix amount (0.0-1.0)."""
         self.wet_mix = max(0.0, min(1.0, wet_mix))
-        if self.current_delay:
-            self.current_delay.set_parameters(wet_mix=self.wet_mix)
+        if self.stereo_delay:
+            self.stereo_delay.set_parameters(wet_mix=self.wet_mix)
         print(f"🎛️ Wet mix: {self.wet_mix:.2f}")
     
-    def list_effects(self):
-        """List available delay effects."""
-        effects = ['basic', 'tape', 'multi', 'tempo', 'stereo']
-        print("Available delay effects:", ", ".join(effects))
+    def set_stereo_width(self, width: float):
+        """Set stereo width (0.0-1.0)."""
+        self.stereo_width = max(0.0, min(1.0, width))
+        if self.stereo_delay:
+            self.stereo_delay.set_stereo_parameters(stereo_width=self.stereo_width)
+        print(f"🎛️ Stereo width: {self.stereo_width:.2f}")
+    
+    def set_cross_feedback(self, cross_feedback: float):
+        """Set cross-feedback amount (0.0-0.5)."""
+        self.cross_feedback = max(0.0, min(0.5, cross_feedback))
+        if self.stereo_delay:
+            self.stereo_delay.set_stereo_parameters(cross_feedback=self.cross_feedback)
+        print(f"🎛️ Cross-feedback: {self.cross_feedback:.2f}")
+    
+    def toggle_ping_pong(self):
+        """Toggle ping-pong mode."""
+        self.ping_pong = not self.ping_pong
+        if self.stereo_delay:
+            self.stereo_delay.set_stereo_parameters(ping_pong=self.ping_pong)
+        print(f"🎛️ Ping-pong: {'On' if self.ping_pong else 'Off'}")
     
     def get_status(self):
         """Get current status."""
         return {
             'running': self.is_running,
-            'effect_type': self.current_effect_type,
-            'delay_time': self.delay_time,
+            'left_delay': self.left_delay,
+            'right_delay': self.right_delay,
             'feedback': self.feedback,
-            'wet_mix': self.wet_mix
+            'wet_mix': self.wet_mix,
+            'ping_pong': self.ping_pong,
+            'stereo_width': self.stereo_width,
+            'cross_feedback': self.cross_feedback
         }
     
     def start(self):
-        """Start the delay effects system."""
+        """Start the stereo delay effects system."""
         if self.is_running:
             print("⚠️  System is already running")
             return
@@ -206,14 +212,14 @@ class DelayController:
         self.audio_thread = threading.Thread(target=self.audio_loop)
         self.audio_thread.daemon = True
         self.audio_thread.start()
-        print("🎸 Delay effects system started!")
+        print("🎸 Stereo delay effects system started!")
     
     def stop(self):
-        """Stop the delay effects system."""
+        """Stop the stereo delay effects system."""
         self.is_running = False
         if self.audio_thread:
             self.audio_thread.join(timeout=1.0)
-        print("🛑 Delay effects system stopped")
+        print("🛑 Stereo delay effects system stopped")
     
     def audio_loop(self):
         """Main audio processing loop"""
@@ -238,15 +244,10 @@ class DelayController:
                     if overflowed:
                         print("⚠️  Audio buffer overflow")
                     
-                    # Process through delay effect
-                    if self.current_delay:
+                    # Process through stereo delay effect
+                    if self.stereo_delay:
                         # Get stereo output from delay
-                        if hasattr(self.current_delay, 'process_mono_to_stereo'):
-                            # Stereo delay needs special handling
-                            left_out, right_out = self.current_delay.process_mono_to_stereo(audio_in.flatten())
-                        else:
-                            # Other delays return stereo output
-                            left_out, right_out = self.current_delay.process_buffer(audio_in.flatten())
+                        left_out, right_out = self.stereo_delay.process_mono_to_stereo(audio_in.flatten())
                         # Combine into stereo array
                         audio_out = np.column_stack((left_out, right_out))
                     else:
@@ -262,32 +263,31 @@ class DelayController:
             self.is_running = False
 
 class EnhancedInteractiveCLI:
-    """Enhanced interactive CLI for guitar delay effects."""
+    """Enhanced interactive CLI for guitar stereo delay effects."""
     
     def __init__(self):
         self.config = Config()
-        self.delay_controller = DelayController()
-        self.current_effect = "delay"
+        self.delay_controller = StereoDelayController()
         
-        print("🎸 Guitar Delay Effects Interactive CLI")
+        print("🎸 Guitar Stereo Delay Effects Interactive CLI")
         print("=" * 50)
     
     def run(self):
         """Run the interactive CLI."""
         print("\n🎛️ Available commands:")
-        print("  effect <name>     - Switch to effect (delay)")
-        print("  start             - Start the current effect")
-        print("  stop              - Stop the current effect")
+        print("  start             - Start the stereo delay effect")
+        print("  stop              - Stop the stereo delay effect")
         print("  status            - Show current status")
         print("  help              - Show this help")
         print("  quit              - Exit the CLI")
-        print("\n🎛️ Delay-specific commands:")
-        print("  delay <type>      - Set delay type (basic, tape, multi, tempo, stereo)")
-        print("  time <seconds>    - Set delay time")
+        print("\n🎛️ Stereo delay commands:")
+        print("  left <seconds>    - Set left channel delay time")
+        print("  right <seconds>   - Set right channel delay time")
         print("  feedback <0-0.9> - Set feedback amount")
         print("  wet <0-1.0>       - Set wet mix amount")
-        print("  effects           - List available delay effects")
-        print("  demo              - Run delay effects demo")
+        print("  width <0-1.0>     - Set stereo width")
+        print("  cross <0-0.5>     - Set cross-feedback amount")
+        print("  ping              - Toggle ping-pong mode")
         
         while True:
             try:
@@ -326,20 +326,24 @@ class EnhancedInteractiveCLI:
             self.delay_controller.stop()
         elif cmd == "status":
             self.show_status()
-        elif cmd == "delay":
-            if args:
-                self.delay_controller.set_delay_effect(args[0])
-            else:
-                print("❌ Please specify delay type: basic, tape, multi, tempo, stereo")
-        elif cmd == "time":
+        elif cmd == "left":
             if args:
                 try:
                     time_val = float(args[0])
-                    self.delay_controller.set_delay_time(time_val)
+                    self.delay_controller.set_left_delay(time_val)
                 except ValueError:
                     print("❌ Invalid time value")
             else:
-                print("❌ Please specify delay time in seconds")
+                print("❌ Please specify left delay time in seconds")
+        elif cmd == "right":
+            if args:
+                try:
+                    time_val = float(args[0])
+                    self.delay_controller.set_right_delay(time_val)
+                except ValueError:
+                    print("❌ Invalid time value")
+            else:
+                print("❌ Please specify right delay time in seconds")
         elif cmd == "feedback":
             if args:
                 try:
@@ -358,93 +362,74 @@ class EnhancedInteractiveCLI:
                     print("❌ Invalid wet mix value")
             else:
                 print("❌ Please specify wet mix amount (0.0-1.0)")
-        elif cmd == "effects":
-            self.delay_controller.list_effects()
-        elif cmd == "demo":
-            self.run_demo()
-        elif cmd == "effect":
+        elif cmd == "width":
             if args:
-                if args[0] == "delay":
-                    self.current_effect = "delay"
-                    print("✅ Switched to delay effects")
-                else:
-                    print(f"❌ Unknown effect: {args[0]}")
+                try:
+                    width_val = float(args[0])
+                    self.delay_controller.set_stereo_width(width_val)
+                except ValueError:
+                    print("❌ Invalid stereo width value")
             else:
-                print("❌ Please specify effect name")
+                print("❌ Please specify stereo width amount (0.0-1.0)")
+        elif cmd == "cross":
+            if args:
+                try:
+                    cross_val = float(args[0])
+                    self.delay_controller.set_cross_feedback(cross_val)
+                except ValueError:
+                    print("❌ Invalid cross-feedback value")
+            else:
+                print("❌ Please specify cross-feedback amount (0.0-0.5)")
+        elif cmd == "ping":
+            self.delay_controller.toggle_ping_pong()
         else:
             print(f"❌ Unknown command: {cmd}")
             print("💡 Type 'help' for available commands")
     
     def show_help(self):
         """Show help information."""
-        print("\n🎸 Guitar Delay Effects CLI Help")
+        print("\n🎸 Guitar Stereo Delay Effects CLI Help")
         print("=" * 40)
         print("🎛️ Basic Commands:")
-        print("  start             - Start the delay effects")
-        print("  stop              - Stop the delay effects")
+        print("  start             - Start the stereo delay effects")
+        print("  stop              - Stop the stereo delay effects")
         print("  status            - Show current status")
         print("  quit              - Exit the CLI")
-        print("\n🎛️ Delay Control:")
-        print("  delay <type>      - Set delay type")
-        print("  time <seconds>    - Set delay time")
+        print("\n🎛️ Stereo Delay Control:")
+        print("  left <seconds>    - Set left channel delay time")
+        print("  right <seconds>   - Set right channel delay time")
         print("  feedback <0-0.9>  - Set feedback amount")
         print("  wet <0-1.0>       - Set wet mix amount")
-        print("  effects           - List available effects")
-        print("  demo              - Run effects demo")
-        print("\n🎛️ Delay Types:")
-        print("  basic             - Clean echo effect")
-        print("  tape              - Vintage tape delay")
-        print("  multi             - Multi-tap delay")
-        print("  tempo             - Tempo-synced delay")
-        print("  stereo            - Stereo ping-pong delay")
+        print("  width <0-1.0>     - Set stereo width enhancement")
+        print("  cross <0-0.5>     - Set cross-feedback amount")
+        print("  ping              - Toggle ping-pong mode")
+        print("\n🎛️ Stereo Delay Features:")
+        print("  • Independent left/right delay times")
+        print("  • Ping-pong delay patterns")
+        print("  • Stereo width enhancement")
+        print("  • Cross-feedback between channels")
     
     def show_status(self):
         """Show current status."""
         status = self.delay_controller.get_status()
         print("\n🎛️ Current Status:")
         print(f"  Running: {status['running']}")
-        print(f"  Effect: {status['effect_type']}")
-        print(f"  Delay Time: {status['delay_time']:.2f}s")
+        print(f"  Left Delay: {status['left_delay']:.2f}s")
+        print(f"  Right Delay: {status['right_delay']:.2f}s")
         print(f"  Feedback: {status['feedback']:.2f}")
         print(f"  Wet Mix: {status['wet_mix']:.2f}")
-    
-    def run_demo(self):
-        """Run a demo of the delay effects."""
-        print("🎵 Running delay effects demo...")
-        
-        # Create a test signal (sine wave)
-        duration = 2.0
-        sample_rate = self.config.sample_rate
-        t = np.linspace(0, duration, int(sample_rate * duration))
-        test_signal = 0.3 * np.sin(2 * np.pi * 440 * t)  # A4 note
-        
-        # Process through different delay effects
-        effects = ['basic', 'tape', 'multi', 'tempo', 'stereo']
-        
-        for effect in effects:
-            print(f"\n🎛️ Testing {effect} delay...")
-            self.delay_controller.set_delay_effect(effect)
-            
-            # Process the test signal
-            if self.delay_controller.current_delay:
-                try:
-                    if effect == 'stereo':
-                        # Stereo delay needs special handling
-                        left_out, right_out = self.delay_controller.current_delay.process_mono_to_stereo(test_signal)
-                    else:
-                        # All other delays now return stereo output
-                        left_out, right_out = self.delay_controller.current_delay.process_buffer(test_signal)
-                    print(f"✅ {effect} delay processed successfully (stereo)")
-                except Exception as e:
-                    print(f"❌ {effect} delay processing failed: {e}")
-            else:
-                print(f"❌ Failed to create {effect} delay")
-        
-        print("\n🎵 Demo completed!")
+        print(f"  Ping-pong: {'On' if status['ping_pong'] else 'Off'}")
+        print(f"  Stereo Width: {status['stereo_width']:.2f}")
+        print(f"  Cross-feedback: {status['cross_feedback']:.2f}")
 
 def main():
     """Main entry point."""
     cli = EnhancedInteractiveCLI()
+    
+    # Start the stereo delay immediately
+    cli.delay_controller.start()
+    
+    # Run the interactive CLI
     cli.run()
 
 if __name__ == "__main__":
