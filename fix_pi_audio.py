@@ -171,7 +171,7 @@ def main():
         test_audio_performance()
         
         print("\n🎉 Audio fixes applied!")
-        print("💡 Restart your Pi and try the arpeggiator again")
+        print("💡 Restart your Pi and try the guitar effects again")
         print("💡 If issues persist, check physical connections and power supply")
         
     else:

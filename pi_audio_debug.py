@@ -29,20 +29,11 @@ def test_imports():
         return False
         
     try:
-        from enhanced_chord_detector import EnhancedChordDetector
-        print("✅ EnhancedChordDetector imported")
+        from optimized_audio_processor import OptimizedAudioProcessor
+        print("✅ OptimizedAudioProcessor imported")
     except Exception as e:
-        print(f"❌ EnhancedChordDetector import failed: {e}")
+        print(f"❌ OptimizedAudioProcessor import failed: {e}")
         return False
-        
-    try:
-        from arpeggiator.working_arpeggiator import WorkingArpeggiatorSystem
-        print("✅ WorkingArpeggiatorSystem imported")
-    except Exception as e:
-        print(f"❌ WorkingArpeggiatorSystem import failed: {e}")
-        return False
-        
-    try:
         from optimized_audio_processor import OptimizedAudioProcessor
         print("✅ OptimizedAudioProcessor imported")
     except Exception as e:
@@ -124,54 +115,9 @@ def test_config():
         print(f"❌ Config test failed: {e}")
         return False
 
-def test_chord_detector():
-    """Test chord detection system."""
-    print("\n🎯 Testing chord detection...")
-    
-    try:
-        from enhanced_chord_detector import EnhancedChordDetector
-        
-        detector = EnhancedChordDetector(48000)
-        print("✅ EnhancedChordDetector initialized")
-        
-        # Test with synthetic audio
-        sample_rate = 48000
-        duration = 0.1
-        t = np.linspace(0, duration, int(sample_rate * duration), False)
-        test_audio = np.sin(2 * np.pi * 440 * t)  # 440Hz
-        
-        result = detector.detect_chord_from_audio(test_audio)
-        print(f"✅ Chord detection test passed: {result}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ Chord detection test failed: {e}")
-        return False
 
-def test_arpeggiator():
-    """Test arpeggiator system."""
-    print("\n🎸 Testing arpeggiator...")
-    
-    try:
-        from arpeggiator.working_arpeggiator import WorkingArpeggiatorSystem
-        from config import Config
-        
-        config = Config()
-        arpeggiator = WorkingArpeggiatorSystem(config)
-        print("✅ WorkingArpeggiatorSystem initialized")
-        
-        # Test status
-        status = arpeggiator.get_status()
-        print(f"   Buffer size: {status['buffer_size']}")
-        print(f"   Latency: {status['latency_ms']:.1f}ms")
-        print(f"   Sample rate: {arpeggiator.sample_rate}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ Arpeggiator test failed: {e}")
-        return False
+
+
 
 def test_audio_processor():
     """Test audio processor."""
@@ -245,8 +191,8 @@ def main():
         ("Audio Devices", test_audio_devices),
         ("Basic Audio", test_basic_audio),
         ("Configuration", test_config),
-        ("Chord Detection", test_chord_detector),
-        ("Arpeggiator", test_arpeggiator),
+
+
         ("Audio Processor", test_audio_processor),
         ("Audio Streams", test_audio_stream),
     ]

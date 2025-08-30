@@ -12,10 +12,10 @@ import threading
 import time
 from typing import Optional, Dict, Any
 
-from arpeggiator import ArpeggioEngine, SynthEngine
+
 from delay import (BasicDelay, TapeDelay, MultiTapDelay, 
                    TempoSyncedDelay, StereoDelay)
-from guitar_synth import GuitarSynth
+
 
 
 class AudioProcessor:
@@ -25,9 +25,7 @@ class AudioProcessor:
         self.config = config
         self.sample_rate = sample_rate
         
-        # Core engines
-        self.arpeggio_engine = ArpeggioEngine(config)
-        self.synth_engine = SynthEngine(config)
+
         
         # Delay effects
         self.delay_effects = {
@@ -38,27 +36,14 @@ class AudioProcessor:
             "stereo_delay": StereoDelay(sample_rate=sample_rate)
         }
         
-        # Guitar synth effect
-        self.guitar_synth = GuitarSynth(sample_rate=sample_rate)
+
         
         # Current effect state
-        self.current_effect = "arpeggiator"
+        self.current_effect = "basic_delay"
         self.active_effects = set()
         
         # Audio state
         self.is_running = False
-        self.current_chord = None
-        self.current_arpeggio = None
-        self.arpeggio_audio = None
-        self.arpeggio_position = 0
-        self.arpeggio_length = 0
-        self.arpeggio_start_time = 0
-        
-        # Settings
-        self.tempo = 100
-        self.pattern = config.default_pattern
-        self.synth_type = config.default_synth
-        self.duration = 2.4
         
         # Audio buffer management
         self.input_buffer = np.array([])
@@ -71,7 +56,7 @@ class AudioProcessor:
         
     def set_current_effect(self, effect_name: str):
         """Set the current effect to control."""
-        if effect_name in self.delay_effects or effect_name == "arpeggiator" or effect_name == "guitar_synth":
+        if effect_name in self.delay_effects:
             self.current_effect = effect_name
             print(f"Current effect set to: {effect_name}")
         else:
@@ -79,16 +64,9 @@ class AudioProcessor:
             
     def start_effect(self, effect_name: str):
         """Start a specific effect."""
-        if effect_name == "arpeggiator":
-            # Arpeggiator is always available
-            self.active_effects.add("arpeggiator")
-            print("Arpeggiator started")
-        elif effect_name in self.delay_effects:
+        if effect_name in self.delay_effects:
             self.active_effects.add(effect_name)
             print(f"{effect_name} started")
-        elif effect_name == "guitar_synth":
-            self.active_effects.add("guitar_synth")
-            print("Guitar synth started")
         else:
             print(f"Unknown effect: {effect_name}")
             
@@ -102,15 +80,7 @@ class AudioProcessor:
             
     def get_effect_status(self, effect_name: str) -> Dict[str, Any]:
         """Get status of a specific effect."""
-        if effect_name == "arpeggiator":
-            return {
-                "active": "arpeggiator" in self.active_effects,
-                "tempo": self.tempo,
-                "pattern": self.pattern,
-                "synth": self.synth_type,
-                "duration": self.duration
-            }
-        elif effect_name in self.delay_effects:
+        if effect_name in self.delay_effects:
             effect = self.delay_effects[effect_name]
             status = effect.get_parameters()
             status["active"] = effect_name in self.active_effects
@@ -118,16 +88,7 @@ class AudioProcessor:
         else:
             return {"error": f"Unknown effect: {effect_name}"}
             
-    def set_arpeggiator_parameter(self, param: str, value):
-        """Set arpeggiator parameter."""
-        if param == "tempo":
-            self.tempo = max(60, min(200, value))
-        elif param == "pattern":
-            self.pattern = value
-        elif param == "synth":
-            self.synth_type = value
-        elif param == "duration":
-            self.duration = value
+
             
     def set_delay_parameter(self, effect_name: str, param: str, value):
         """Set delay effect parameter."""
@@ -162,25 +123,9 @@ class AudioProcessor:
             
         output_audio = input_audio.copy()
         
-        # Process through arpeggiator if active
-        if "arpeggiator" in self.active_effects and self.current_arpeggio:
-            # Generate arpeggio audio
-            arpeggio_audio = self.synth_engine.render_arpeggio(
-                self.current_arpeggio, self.synth_type
-            )
-            
-            if len(arpeggio_audio) > 0:
-                # Mix arpeggio with input
-                arpeggio_gain = 0.7
-                min_length = min(len(output_audio), len(arpeggio_audio))
-                output_audio[:min_length] = np.clip(
-                    output_audio[:min_length] + arpeggio_audio[:min_length] * arpeggio_gain,
-                    -1.0, 1.0
-                )
+
                 
-        # Process through guitar synth if active
-        if "guitar_synth" in self.active_effects:
-            output_audio = self.guitar_synth.process_audio(output_audio)
+
             
         # Process through active delay effects
         for effect_name in self.active_effects:
@@ -205,27 +150,7 @@ class AudioProcessor:
                         
         return output_audio
         
-    def update_chord(self, chord_data: Dict[str, Any]):
-        """Update current chord and generate arpeggio if valid."""
-        self.current_chord = chord_data
-        
-        if chord_data and chord_data.get('valid', False):
-            # Generate new arpeggio
-            self.current_arpeggio = self.arpeggio_engine.generate_arpeggio(
-                chord_data, self.pattern, self.tempo, self.duration
-            )
-            
-            # Store arpeggio audio for processing
-            if self.current_arpeggio and self.current_arpeggio.get('notes'):
-                arpeggio_audio = self.synth_engine.render_arpeggio(
-                    self.current_arpeggio, self.synth_type
-                )
-                
-                if len(arpeggio_audio) > 0:
-                    self.arpeggio_audio = arpeggio_audio
-                    self.arpeggio_position = 0
-                    self.arpeggio_length = len(arpeggio_audio)
-                    self.arpeggio_start_time = time.time()
+
                     
     def audio_callback(self, indata, outdata, frames, time, status):
         """Audio callback for real-time processing."""
@@ -282,21 +207,8 @@ class AudioProcessor:
         print("Audio stopped")
         
     def demo_mode(self):
-        """Run demo mode with C major chord."""
-        if "arpeggiator" in self.active_effects:
-            # Create demo chord data
-            demo_chord = {
-                'valid': True,
-                'root': 'C',
-                'quality': 'major',
-                'confidence': 0.9,
-                'notes': ['C', 'E', 'G']
-            }
-            
-            self.update_chord(demo_chord)
-            print("Demo mode: C major chord arpeggio")
-        else:
-            print("Arpeggiator must be active for demo mode")
+        """Run demo mode with delay effects."""
+        print("Demo mode: Testing delay effects")
             
     def test_audio(self):
         """Test audio system with a simple tone."""
@@ -321,23 +233,7 @@ class AudioProcessor:
         return {
             "current_effect": self.current_effect,
             "active_effects": list(self.active_effects),
-            "tempo": self.tempo,
-            "pattern": self.pattern,
-            "synth": self.synth_type,
-            "duration": self.duration,
-            "audio_running": self.is_running,
-            "current_chord": self.current_chord
+            "audio_running": self.is_running
         }
         
-    def set_guitar_synth_parameter(self, param_name: str, value):
-        """Set a guitar synth parameter."""
-        if hasattr(self.guitar_synth, f"set_{param_name}"):
-            getattr(self.guitar_synth, f"set_{param_name}")(value)
-        elif hasattr(self.guitar_synth, param_name):
-            setattr(self.guitar_synth, param_name, value)
-        else:
-            print(f"Unknown guitar synth parameter: {param_name}")
-            
-    def get_guitar_synth_parameters(self) -> Dict[str, Any]:
-        """Get all guitar synth parameters."""
-        return self.guitar_synth.get_parameters()
+

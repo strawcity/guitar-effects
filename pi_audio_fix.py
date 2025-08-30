@@ -90,39 +90,7 @@ def test_scarlett_audio(scarlett_device_id):
         print(f"❌ Scarlett test failed: {e}")
         return False
 
-def update_working_arpeggiator(scarlett_device_id):
-    """Update the working arpeggiator to use the Scarlett 2i2."""
-    print(f"\n🔧 Updating working arpeggiator...")
-    
-    try:
-        # Read the current working arpeggiator
-        with open('arpeggiator/working_arpeggiator.py', 'r') as f:
-            content = f.read()
-        
-        # Add device selection
-        if 'device=' not in content:
-            # Add device parameter to stream creation
-            content = content.replace(
-                'with sd.InputStream(',
-                f'with sd.InputStream(device={scarlett_device_id}, '
-            )
-            content = content.replace(
-                'with sd.OutputStream(',
-                f'with sd.OutputStream(device={scarlett_device_id}, '
-            )
-            
-            # Write back
-            with open('arpeggiator/working_arpeggiator.py', 'w') as f:
-                f.write(content)
-            print("✅ Updated working arpeggiator with device selection")
-        else:
-            print("✅ Working arpeggiator already has device selection")
-            
-        return True
-        
-    except Exception as e:
-        print(f"❌ Could not update arpeggiator: {e}")
-        return False
+
 
 def update_audio_processor(scarlett_device_id):
     """Update the audio processor to use the Scarlett 2i2."""
@@ -227,9 +195,7 @@ def main():
         print("❌ Scarlett 2i2 test failed")
         return
     
-    # Update working arpeggiator
-    if not update_working_arpeggiator(scarlett_device_id):
-        print("❌ Could not update arpeggiator")
+    
         return
     
     # Update audio processor
@@ -250,7 +216,7 @@ def main():
     print()
     print("2. Try the interactive CLI:")
     print("   python3 interactive_cli.py")
-    print("   select arpeggiator")
+    print("   select delay effect")
     print("   start")
     print()
     print("3. Strum your guitar - you should hear audio!")

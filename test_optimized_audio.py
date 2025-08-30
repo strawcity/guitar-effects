@@ -32,7 +32,7 @@ def test_optimized_audio_processor():
         
         # Test effect management
         print(f"\n🎛️  Effect Management:")
-        processor.start_effect("arpeggiator")
+        processor.start_effect("basic_delay")
         processor.start_effect("basic_delay")
         
         status = processor.get_status()

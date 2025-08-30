@@ -14,10 +14,10 @@ from typing import Optional, Dict, Any
 import warnings
 warnings.filterwarnings('ignore')
 
-from arpeggiator import ArpeggioEngine, SynthEngine, WorkingArpeggiatorSystem
+
 from delay import (BasicDelay, TapeDelay, MultiTapDelay, 
                    TempoSyncedDelay, StereoDelay)
-from guitar_synth import GuitarSynth
+
 
 
 class OptimizedAudioProcessor:
@@ -29,9 +29,7 @@ class OptimizedAudioProcessor:
         self.config = config
         self.sample_rate = sample_rate
         
-        # Core engines
-        self.arpeggio_engine = ArpeggioEngine(config)
-        self.synth_engine = SynthEngine(config)
+
         
         # Delay effects
         self.delay_effects = {
@@ -42,30 +40,16 @@ class OptimizedAudioProcessor:
             "stereo_delay": StereoDelay(sample_rate=sample_rate)
         }
         
-        # Guitar synth effect
-        self.guitar_synth = GuitarSynth(sample_rate=sample_rate)
+
         
-        # Working arpeggiator system
-        self.working_arpeggiator = WorkingArpeggiatorSystem(config, sample_rate)
+
         
         # Current effect state
-        self.current_effect = "arpeggiator"
+        self.current_effect = "basic_delay"
         self.active_effects = set()
         
         # Audio state
         self.is_running = False
-        self.current_chord = None
-        self.current_arpeggio = None
-        self.arpeggio_audio = None
-        self.arpeggio_position = 0
-        self.arpeggio_length = 0
-        self.arpeggio_start_time = 0
-        
-        # Settings
-        self.tempo = 100
-        self.pattern = config.default_pattern
-        self.synth_type = config.default_synth
-        self.duration = 2.4
         
         # OPTIMIZED: Platform-specific buffer sizes
         if config.is_pi:
@@ -89,7 +73,7 @@ class OptimizedAudioProcessor:
         
     def set_current_effect(self, effect_name: str):
         """Set the current effect to control."""
-        if effect_name in self.delay_effects or effect_name == "arpeggiator" or effect_name == "guitar_synth":
+        if effect_name in self.delay_effects:
             self.current_effect = effect_name
             print(f"Current effect set to: {effect_name}")
         else:
@@ -97,51 +81,21 @@ class OptimizedAudioProcessor:
             
     def start_effect(self, effect_name: str):
         """Start a specific effect."""
-        if effect_name == "arpeggiator":
-            # Start the working arpeggiator system
-            self.working_arpeggiator.start_arpeggiator()
-            self.active_effects.add("arpeggiator")
-            print("🎸 Working arpeggiator started with enhanced chord detection!")
-        elif effect_name in self.delay_effects:
+        if effect_name in self.delay_effects:
             self.active_effects.add(effect_name)
             print(f"{effect_name} started")
-        elif effect_name == "guitar_synth":
-            self.active_effects.add("guitar_synth")
-            print("Guitar synth started")
         else:
             print(f"Unknown effect: {effect_name}")
             
     def stop_effect(self, effect_name: str):
         """Stop a specific effect."""
         if effect_name in self.active_effects:
-            if effect_name == "arpeggiator":
-                # Stop the working arpeggiator system
-                self.working_arpeggiator.stop_arpeggiator()
             self.active_effects.remove(effect_name)
             print(f"{effect_name} stopped")
         else:
             print(f"{effect_name} is not active")
             
-    def set_arpeggiator_parameter(self, param_name: str, value):
-        """Set an arpeggiator parameter."""
-        if param_name == "tempo":
-            self.tempo = max(60, min(200, value))
-            self.working_arpeggiator.set_tempo(value)
-            print(f"Tempo set to {self.tempo} BPM")
-        elif param_name == "pattern":
-            self.pattern = value
-            self.working_arpeggiator.set_pattern(value)
-            print(f"Pattern set to {value}")
-        elif param_name == "synth":
-            self.synth_type = value
-            self.working_arpeggiator.set_synth(value)
-            print(f"Synth type set to {value}")
-        elif param_name == "duration":
-            self.duration = max(0.5, min(10.0, value))
-            self.working_arpeggiator.set_duration(value)
-            print(f"Duration set to {self.duration} seconds")
-        else:
-            print(f"Unknown arpeggiator parameter: {param_name}")
+
             
     def set_delay_parameter(self, effect_name: str, param_name: str, value):
         """Set a delay effect parameter."""
@@ -198,25 +152,9 @@ class OptimizedAudioProcessor:
             
         output_audio = input_audio.copy()
         
-        # Process through arpeggiator if active
-        if "arpeggiator" in self.active_effects and self.current_arpeggio:
-            # Generate arpeggio audio
-            arpeggio_audio = self.synth_engine.render_arpeggio(
-                self.current_arpeggio, self.synth_type
-            )
-            
-            if len(arpeggio_audio) > 0:
-                # Mix arpeggio with input
-                arpeggio_gain = 0.7
-                min_length = min(len(output_audio), len(arpeggio_audio))
-                output_audio[:min_length] = np.clip(
-                    output_audio[:min_length] + arpeggio_audio[:min_length] * arpeggio_gain,
-                    -1.0, 1.0
-                )
+
                 
-        # Process through guitar synth if active
-        if "guitar_synth" in self.active_effects:
-            output_audio = self.guitar_synth.process_audio(output_audio)
+
             
         # Process through active delay effects
         for effect_name in self.active_effects:
@@ -253,27 +191,7 @@ class OptimizedAudioProcessor:
                         
         return output_audio
         
-    def update_chord(self, chord_data: Dict[str, Any]):
-        """Update current chord and generate arpeggio if valid."""
-        self.current_chord = chord_data
-        
-        if chord_data and chord_data.get('valid', False):
-            # Generate new arpeggio
-            self.current_arpeggio = self.arpeggio_engine.generate_arpeggio(
-                chord_data, self.pattern, self.tempo, self.duration
-            )
-            
-            # Store arpeggio audio for processing
-            if self.current_arpeggio and self.current_arpeggio.get('notes'):
-                arpeggio_audio = self.synth_engine.render_arpeggio(
-                    self.current_arpeggio, self.synth_type
-                )
-                
-                if len(arpeggio_audio) > 0:
-                    self.arpeggio_audio = arpeggio_audio
-                    self.arpeggio_position = 0
-                    self.arpeggio_length = len(arpeggio_audio)
-                    self.arpeggio_start_time = time.time()
+
                     
     def audio_callback(self, indata, outdata, frames, time, status):
         """Optimized audio callback for real-time processing."""
@@ -281,35 +199,7 @@ class OptimizedAudioProcessor:
             # OPTIMIZED: Minimize lock time
             input_audio = indata[:, 0] if indata.ndim > 1 else indata
             
-            # Check if arpeggiator is active and use working arpeggiator
-            if "arpeggiator" in self.active_effects and hasattr(self, 'working_arpeggiator'):
-                # Use working arpeggiator for audio processing
-                try:
-                    # Get output from working arpeggiator
-                    output_audio = self.working_arpeggiator._generate_output_audio()
-                    
-                    # Ensure output is the right size
-                    if len(output_audio) >= frames:
-                        output_audio = output_audio[:frames]
-                    else:
-                        # Pad with silence if too short
-                        output_audio = np.pad(output_audio, (0, frames - len(output_audio)))
-                    
-                    # Output the arpeggiator audio
-                    if outdata.ndim > 1:
-                        outdata[:, 0] = output_audio
-                    else:
-                        outdata[:frames] = output_audio
-                    return
-                    
-                except Exception as e:
-                    print(f"Working arpeggiator audio error: {e}")
-                    # Fall back to passthrough
-                    if outdata.ndim > 1:
-                        outdata[:, 0] = input_audio[:frames]
-                    else:
-                        outdata[:frames] = input_audio[:frames]
-                    return
+
             
             # Quick check if other effects are active
             if not self.active_effects:
@@ -390,12 +280,8 @@ class OptimizedAudioProcessor:
         }
         
     def demo_mode(self):
-        """Run demo mode with C major chord."""
-        if "arpeggiator" in self.active_effects:
-            # Use the working arpeggiator demo mode
-            self.working_arpeggiator.demo_mode()
-        else:
-            print("Arpeggiator must be active for demo mode")
+        """Run demo mode with delay effects."""
+        print("Demo mode: Testing delay effects")
             
     def test_audio(self):
         """Test audio system with a simple tone."""
@@ -420,41 +306,14 @@ class OptimizedAudioProcessor:
         status = {
             "current_effect": self.current_effect,
             "active_effects": list(self.active_effects),
-            "tempo": self.tempo,
-            "pattern": self.pattern,
-            "synth": self.synth_type,
-            "duration": self.duration,
             "audio_running": self.is_running,
-            "current_chord": self.current_chord,
             "buffer_size": self.buffer_size,
             "latency_ms": self.buffer_size / self.sample_rate * 1000
         }
         
-        # Add working arpeggiator status if it's active
-        if "arpeggiator" in self.active_effects:
-            arpeggiator_status = self.working_arpeggiator.get_status()
-            status.update({
-                "arpeggiator_running": arpeggiator_status.get("running", False),
-                "arpeggiator_chord": arpeggiator_status.get("current_chord"),
-                "arpeggiator_tempo": arpeggiator_status.get("tempo"),
-                "arpeggiator_pattern": arpeggiator_status.get("pattern"),
-                "arpeggiator_synth": arpeggiator_status.get("synth")
-            })
-        
         return status
         
-    def set_guitar_synth_parameter(self, param_name: str, value):
-        """Set a guitar synth parameter."""
-        if hasattr(self.guitar_synth, f"set_{param_name}"):
-            getattr(self.guitar_synth, f"set_{param_name}")(value)
-        elif hasattr(self.guitar_synth, param_name):
-            setattr(self.guitar_synth, param_name, value)
-        else:
-            print(f"Unknown guitar synth parameter: {param_name}")
-            
-    def get_guitar_synth_parameters(self) -> Dict[str, Any]:
-        """Get all guitar synth parameters."""
-        return self.guitar_synth.get_parameters()
+
 
 
 def main():
