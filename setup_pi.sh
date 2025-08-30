@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Raspberry Pi Setup Script for Guitar Arpeggiator
+# Raspberry Pi Setup Script for Guitar Effects
 # This script automates the setup process for Raspberry Pi
 
-echo "🎸 Setting up Guitar Arpeggiator on Raspberry Pi..."
+echo "🎸 Setting up Guitar Effects on Raspberry Pi..."
 echo "=================================================="
 
 # Check if running on Raspberry Pi
@@ -57,7 +57,7 @@ echo ""
 echo "🎉 Setup complete! Next steps:"
 echo "1. Reboot your Raspberry Pi: sudo reboot"
 echo "2. Activate the virtual environment: source venv/bin/activate"
-echo "3. Run the arpeggiator: python main.py"
+echo "3. Run the guitar effects: python main.py"
 echo ""
 echo "🔌 GPIO Pin Layout:"
 echo "   Start Button: GPIO 17"

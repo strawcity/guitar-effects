@@ -2,7 +2,7 @@
 """
 Audio Processor for Guitar Effects System
 
-Handles audio routing and processing for both arpeggios and delay effects,
+Handles audio routing and processing for delay effects,
 integrating them into a unified audio pipeline.
 """
 

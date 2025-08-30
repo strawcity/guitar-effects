@@ -100,8 +100,8 @@ class AudioStabilityTest:
         return optimal_size
     
     def test_current_settings(self):
-        """Test with current arpeggiator settings."""
-        print("🧪 TESTING CURRENT ARPEGGIATOR SETTINGS")
+            """Test with current audio settings."""
+    print("🧪 TESTING CURRENT AUDIO SETTINGS")
         print("=" * 50)
         
         from config import Config
@@ -117,7 +117,7 @@ class AudioStabilityTest:
         
         if stable:
             print(f"\n✅ Current settings are stable!")
-            print(f"💡 Your arpeggiator should work without underruns")
+            print(f"💡 Your audio system should work without underruns")
         else:
             print(f"\n❌ Current settings are unstable")
             print(f"💡 Running full optimization test...")

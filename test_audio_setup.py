@@ -153,7 +153,7 @@ def test_audio_playback(output_device):
 
 def main():
     """Main test function"""
-    print("🎸 Guitar Arpeggiator Audio Setup Test")
+    print("🎸 Guitar Effects Audio Setup Test")
     print("=" * 50)
     
     # Test device detection
@@ -182,10 +182,10 @@ def main():
         return
     
     print("\n🎉 All audio tests passed!")
-    print("\nYour Scarlett 2i2 is properly configured for the guitar arpeggiator.")
+    print("\nYour Scarlett 2i2 is properly configured for the guitar effects system.")
     print("You should now be able to:")
     print("  1. Hear your guitar through the monitor outputs")
-    print("  2. Hear generated arpeggios mixed with your guitar")
+    print("  2. Hear delay effects mixed with your guitar")
     print("  3. Use the system without audio crashes")
 
 if __name__ == "__main__":
