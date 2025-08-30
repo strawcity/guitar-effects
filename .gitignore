@@ -23,6 +23,7 @@ MANIFEST
 
 # Rust
 target/
+rust_audio_processor/target/
 Cargo.lock
 
 # Virtual Environment
