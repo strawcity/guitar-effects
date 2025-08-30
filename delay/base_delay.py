@@ -65,6 +65,27 @@ class BaseDelay(ABC):
         self.wet_mix = np.clip(wet_mix, 0.0, 1.0)
         self.dry_mix = 1.0 - self.wet_mix
         
+    def set_parameters(self, **kwargs):
+        """
+        Set multiple parameters at once.
+        
+        Args:
+            **kwargs: Parameter name-value pairs to set
+        """
+        for param, value in kwargs.items():
+            if param == 'feedback':
+                self.set_feedback(value)
+            elif param == 'wet_mix':
+                self.set_wet_mix(value)
+            elif param == 'delay_time':
+                self.set_delay_time(value)
+            elif param == 'modulation_rate':
+                self.set_modulation(rate=value, depth=self.modulation_depth)
+            elif param == 'modulation_depth':
+                self.set_modulation(rate=self.modulation_rate, depth=value)
+            else:
+                print(f"⚠️  Unknown parameter: {param}")
+        
     def set_modulation(self, rate: float, depth: float):
         """
         Set modulation parameters for the delay time.

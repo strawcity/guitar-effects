@@ -151,6 +151,39 @@ class StereoDelay(BaseDelay):
         if feedback_intensity is not None:
             self.cross_feedback_distortion.set_feedback_intensity(feedback_intensity)
             
+    def set_parameters(self, **kwargs):
+        """
+        Set multiple parameters at once.
+        
+        Args:
+            **kwargs: Parameter name-value pairs to set
+        """
+        for param, value in kwargs.items():
+            if param == 'feedback':
+                self.set_feedback(value)
+            elif param == 'wet_mix':
+                self.set_wet_mix(value)
+            elif param == 'left_delay':
+                self.set_left_delay(value)
+            elif param == 'right_delay':
+                self.set_right_delay(value)
+            elif param == 'ping_pong':
+                self.set_stereo_parameters(ping_pong=value)
+            elif param == 'stereo_width':
+                self.set_stereo_parameters(stereo_width=value)
+            elif param == 'cross_feedback':
+                self.set_stereo_parameters(cross_feedback=value)
+            elif param == 'distortion_type':
+                self.set_cross_feedback_distortion(distortion_type=value)
+            elif param == 'distortion_drive':
+                self.set_cross_feedback_distortion(drive=value)
+            elif param == 'distortion_mix':
+                self.set_cross_feedback_distortion(mix=value)
+            elif param == 'feedback_intensity':
+                self.set_cross_feedback_distortion(feedback_intensity=value)
+            else:
+                print(f"⚠️  Unknown parameter: {param}")
+            
     def _read_stereo_delays(self) -> Tuple[float, float]:
         """Read delayed signals from both channels."""
         # Left channel delay
