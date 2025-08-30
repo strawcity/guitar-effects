@@ -21,6 +21,10 @@ wheels/
 *.egg
 MANIFEST
 
+# Rust
+target/
+Cargo.lock
+
 # Virtual Environment
 venv/
 env/
