@@ -100,8 +100,8 @@ class AudioStabilityTest:
         return optimal_size
     
     def test_current_settings(self):
-            """Test with current audio settings."""
-    print("🧪 TESTING CURRENT AUDIO SETTINGS")
+        """Test with current audio settings."""
+        print("🧪 TESTING CURRENT AUDIO SETTINGS")
         print("=" * 50)
         
         from config import Config
