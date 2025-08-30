@@ -9,6 +9,7 @@ parameter adjustment and effect switching.
 import threading
 import time
 import numpy as np
+import sounddevice as sd
 from typing import Optional, Dict, Any
 
 from config import Config
@@ -35,10 +36,90 @@ class DelayController:
         self.is_running = False
         self.audio_thread = None
         
+        # Audio device configuration
+        self.input_device = None
+        self.output_device = None
+        
+        # Auto-detect audio devices
+        self.detect_audio_devices()
+        
         # Initialize default delay
         self.set_delay_effect('basic')
         
         print("🎛️ Delay Controller initialized")
+    
+    def detect_audio_devices(self):
+        """Auto-detect and configure audio devices with platform-specific logic"""
+        print("\n🔊 Auto-detecting audio devices...")
+        
+        try:
+            devices = sd.query_devices()
+            device_priorities = self.config.get_audio_devices()
+            
+            # Find input device based on platform priorities
+            self.input_device = self._find_input_device(devices, device_priorities['input_priorities'])
+            
+            # Find output device based on platform priorities
+            self.output_device = self._find_output_device(devices, device_priorities['output_priorities'])
+            
+            print(f"🎯 Final configuration:")
+            print(f"   Input: {devices[self.input_device]['name']} (ID: {self.input_device})")
+            print(f"   Output: {devices[self.output_device]['name']} (ID: {self.output_device})")
+            
+        except Exception as e:
+            print(f"❌ Error detecting audio devices: {e}")
+            # Fallback to defaults
+            self.input_device = None
+            self.output_device = None
+            print("⚠️  Falling back to system default devices")
+    
+    def _find_input_device(self, devices, priorities):
+        """Find the best input device based on platform priorities"""
+        for priority in priorities:
+            for i, device in enumerate(devices):
+                # Check if device has input capability
+                has_input = (device.get('max_inputs', 0) > 0 or 
+                           device.get('hostapi', 0) >= 0)  # Fallback check
+                if has_input and priority.lower() in device['name'].lower():
+                    print(f"✅ Found input device: {device['name']}")
+                    return i
+        
+        # Fallback to default input
+        try:
+            default_input = sd.default.device[0]
+            print(f"⚠️  Using default input device: {devices[default_input]['name']}")
+            return default_input
+        except:
+            # If no default device, use first available input device
+            for i, device in enumerate(devices):
+                if device.get('max_inputs', 0) > 0:
+                    print(f"⚠️  Using first available input device: {device['name']}")
+                    return i
+            return None
+    
+    def _find_output_device(self, devices, priorities):
+        """Find the best output device based on platform priorities"""
+        for priority in priorities:
+            for i, device in enumerate(devices):
+                # Check if device has output capability
+                has_output = (device.get('max_outputs', 0) > 0 or 
+                            device.get('hostapi', 0) >= 0)  # Fallback check
+                if has_output and priority.lower() in device['name'].lower():
+                    print(f"✅ Found output device: {device['name']}")
+                    return i
+        
+        # Fallback to default output
+        try:
+            default_output = sd.default.device[1]
+            print(f"⚠️  Using default output device: {devices[default_output]['name']}")
+            return default_output
+        except:
+            # If no default device, use first available output device
+            for i, device in enumerate(devices):
+                if device.get('max_outputs', 0) > 0:
+                    print(f"⚠️  Using first available output device: {device['name']}")
+                    return i
+            return None
     
     def set_delay_effect(self, effect_type: str):
         """Set the current delay effect type."""
@@ -122,12 +203,63 @@ class DelayController:
             return
         
         self.is_running = True
+        self.audio_thread = threading.Thread(target=self.audio_loop)
+        self.audio_thread.daemon = True
+        self.audio_thread.start()
         print("🎸 Delay effects system started!")
     
     def stop(self):
         """Stop the delay effects system."""
         self.is_running = False
+        if self.audio_thread:
+            self.audio_thread.join(timeout=1.0)
         print("🛑 Delay effects system stopped")
+    
+    def audio_loop(self):
+        """Main audio processing loop"""
+        try:
+            # Use None for device if no specific devices were found
+            input_dev = self.input_device if self.input_device is not None else None
+            output_dev = self.output_device if self.output_device is not None else None
+            
+            with sd.Stream(
+                device=(input_dev, output_dev),
+                channels=(1, 2),  # Mono input, stereo output
+                samplerate=self.config.sample_rate,
+                blocksize=self.config.chunk_size,
+                dtype=np.float32
+            ) as stream:
+                print("🎵 Audio stream started (mono input → stereo output)")
+                
+                while self.is_running:
+                    # Read audio input
+                    audio_in, overflowed = stream.read(self.config.chunk_size)
+                    
+                    if overflowed:
+                        print("⚠️  Audio buffer overflow")
+                    
+                    # Process through delay effect
+                    if self.current_delay:
+                        # Get stereo output from delay
+                        if hasattr(self.current_delay, 'process_mono_to_stereo'):
+                            # Stereo delay needs special handling
+                            left_out, right_out = self.current_delay.process_mono_to_stereo(audio_in.flatten())
+                        else:
+                            # Other delays return stereo output
+                            left_out, right_out = self.current_delay.process_buffer(audio_in.flatten())
+                        # Combine into stereo array
+                        audio_out = np.column_stack((left_out, right_out))
+                    else:
+                        # No delay - duplicate mono to stereo
+                        mono_out = audio_in.flatten()
+                        audio_out = np.column_stack((mono_out, mono_out))
+                    
+                    # Write stereo audio output
+                    stream.write(audio_out)
+                    
+        except Exception as e:
+            print(f"❌ Audio processing error: {e}")
+            self.is_running = False
 
 class EnhancedInteractiveCLI:
     """Enhanced interactive CLI for guitar delay effects."""
