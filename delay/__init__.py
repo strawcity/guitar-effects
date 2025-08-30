@@ -6,8 +6,12 @@ This package contains the stereo delay effect implementation for the guitar effe
 
 from .base_delay import BaseDelay
 from .stereo_delay import StereoDelay
+from .distortion import DistortionEffect, CrossFeedbackDistortion, DistortionType
 
 __all__ = [
     'BaseDelay',
-    'StereoDelay'
+    'StereoDelay',
+    'DistortionEffect',
+    'CrossFeedbackDistortion',
+    'DistortionType'
 ]

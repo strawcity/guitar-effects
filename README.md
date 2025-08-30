@@ -14,6 +14,8 @@ and immediate audio processing!**
   control, ping-pong patterns, and stereo width enhancement
 - **Cross-feedback**: Allows delays to feed back between left and right channels
   for complex spatial effects
+- **Cross-feedback Distortion**: Applies various distortion types to
+  cross-feedback signals for musical feedback patterns
 - **Real-time Control**: Adjust all parameters during playback for dynamic
   performance
 
@@ -129,7 +131,7 @@ with advanced features:
 ```python
 from delay import StereoDelay
 
-# Advanced stereo delay with ping-pong and width enhancement
+# Advanced stereo delay with ping-pong, width enhancement, and cross-feedback distortion
 stereo_delay = StereoDelay(
     left_delay=0.3,      # Left channel delay time
     right_delay=0.6,     # Right channel delay time
@@ -137,7 +139,11 @@ stereo_delay = StereoDelay(
     wet_mix=0.6,         # Wet signal mix
     ping_pong=True,      # Enable ping-pong pattern
     stereo_width=0.5,    # Stereo width enhancement
-    cross_feedback=0.2   # Cross-feedback between channels
+    cross_feedback=0.2,  # Cross-feedback between channels
+    cross_feedback_distortion=True,  # Enable distortion on cross-feedback
+    distortion_type=DistortionType.SOFT_CLIP,  # Type of distortion
+    distortion_drive=0.3,  # Distortion drive amount
+    distortion_mix=0.7     # Distortion wet/dry mix
 )
 
 # Process mono input to stereo output
@@ -147,6 +153,42 @@ left_output, right_output = stereo_delay.process_mono_to_stereo(input_signal)
 left_output, right_output = stereo_delay.process_buffer(left_input, right_input)
 ```
 
+### 🎛️ **Cross-Feedback Distortion**
+
+The stereo delay now includes advanced cross-feedback distortion that applies
+various distortion types to the cross-feedback signals, creating musical and
+interesting feedback patterns:
+
+```python
+from delay import StereoDelay, DistortionType
+
+# Create stereo delay with cross-feedback distortion
+stereo_delay = StereoDelay(
+    # ... other parameters ...
+    cross_feedback_distortion=True,
+    distortion_type=DistortionType.TUBE,  # Available: SOFT_CLIP, HARD_CLIP, TUBE, FUZZ, BIT_CRUSH, WAVESHAPER
+    distortion_drive=0.4,  # Drive amount (0.0 to 1.0)
+    distortion_mix=0.8     # Wet/dry mix (0.0 to 1.0)
+)
+
+# Control distortion parameters in real-time
+stereo_delay.set_cross_feedback_distortion(
+    distortion_type=DistortionType.FUZZ,
+    drive=0.6,
+    mix=0.9,
+    feedback_intensity=0.7  # How much distortion affects feedback
+)
+```
+
+**Available Distortion Types:**
+
+- **Soft Clip**: Musical tanh-based soft clipping
+- **Hard Clip**: Aggressive hard clipping with threshold control
+- **Tube**: Asymmetric tube-style distortion simulation
+- **Fuzz**: Aggressive fuzz with harmonic enhancement
+- **Bit Crush**: Digital bit depth and sample rate reduction
+- **Waveshaper**: Custom cubic polynomial waveshaping
+
 ### 🚀 **Quick Start with Stereo Delay**
 
 ```bash
@@ -155,6 +197,9 @@ python test_delay_effects.py
 
 # Test stereo system
 python test_stereo_system.py
+
+# Test cross-feedback distortion feature
+python test_cross_feedback_distortion.py
 
 # Start the main system
 python main.py

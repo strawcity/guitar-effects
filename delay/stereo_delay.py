@@ -2,11 +2,12 @@
 Stereo Delay Effect Implementation
 
 A stereo delay effect with ping-pong delays, independent channel control,
-and stereo width enhancement.
+stereo width enhancement, and cross-feedback distortion.
 """
 
 import numpy as np
 from .base_delay import BaseDelay
+from .distortion import CrossFeedbackDistortion, DistortionType
 from typing import Tuple, Optional
 
 
@@ -30,7 +31,11 @@ class StereoDelay(BaseDelay):
                  wet_mix: float = 0.7,
                  ping_pong: bool = True,
                  stereo_width: float = 0.5,
-                 cross_feedback: float = 0.2):
+                 cross_feedback: float = 0.2,
+                 cross_feedback_distortion: bool = True,
+                 distortion_type: DistortionType = DistortionType.SOFT_CLIP,
+                 distortion_drive: float = 0.3,
+                 distortion_mix: float = 0.7):
         """
         Initialize the stereo delay effect.
         
@@ -43,6 +48,10 @@ class StereoDelay(BaseDelay):
             ping_pong: Enable ping-pong delay pattern
             stereo_width: Stereo width enhancement (0.0 to 1.0)
             cross_feedback: Cross-feedback between channels (0.0 to 0.5)
+            cross_feedback_distortion: Enable distortion on cross-feedback
+            distortion_type: Type of distortion to apply
+            distortion_drive: Distortion drive amount (0.0 to 1.0)
+            distortion_mix: Distortion wet/dry mix (0.0 to 1.0)
         """
         super().__init__(sample_rate, 4.0, feedback, wet_mix)
         
@@ -65,6 +74,15 @@ class StereoDelay(BaseDelay):
         
         # Stereo enhancement
         self.mid_side_enabled = stereo_width > 0.0
+        
+        # Cross-feedback distortion
+        self.cross_feedback_distortion = CrossFeedbackDistortion(
+            enabled=cross_feedback_distortion,
+            distortion_type=distortion_type,
+            drive=distortion_drive,
+            mix=distortion_mix,
+            sample_rate=sample_rate
+        )
         
     def get_effect_name(self) -> str:
         """Return the name of this delay effect."""
@@ -107,6 +125,32 @@ class StereoDelay(BaseDelay):
         if cross_feedback is not None:
             self.cross_feedback = np.clip(cross_feedback, 0.0, 0.5)
             
+    def set_cross_feedback_distortion(self, enabled: bool = None,
+                                     distortion_type: DistortionType = None,
+                                     drive: float = None,
+                                     mix: float = None,
+                                     feedback_intensity: float = None):
+        """
+        Set cross-feedback distortion parameters.
+        
+        Args:
+            enabled: Enable/disable cross-feedback distortion
+            distortion_type: Type of distortion to apply
+            drive: Distortion drive amount (0.0 to 1.0)
+            mix: Distortion wet/dry mix (0.0 to 1.0)
+            feedback_intensity: How much distortion affects feedback (0.0 to 1.0)
+        """
+        if enabled is not None:
+            self.cross_feedback_distortion.set_enabled(enabled)
+        if distortion_type is not None:
+            self.cross_feedback_distortion.set_distortion_type(distortion_type)
+        if drive is not None:
+            self.cross_feedback_distortion.set_drive(drive)
+        if mix is not None:
+            self.cross_feedback_distortion.set_mix(mix)
+        if feedback_intensity is not None:
+            self.cross_feedback_distortion.set_feedback_intensity(feedback_intensity)
+            
     def _read_stereo_delays(self) -> Tuple[float, float]:
         """Read delayed signals from both channels."""
         # Left channel delay
@@ -145,10 +189,15 @@ class StereoDelay(BaseDelay):
         return enhanced_left, enhanced_right
         
     def _write_stereo_buffers(self, left_sample: float, right_sample: float):
-        """Write to both stereo buffers with cross-feedback."""
+        """Write to both stereo buffers with cross-feedback and distortion."""
         # Calculate cross-feedback
         left_feedback = left_sample + self.cross_feedback * right_sample
         right_feedback = right_sample + self.cross_feedback * left_sample
+        
+        # Apply distortion to cross-feedback signals
+        left_feedback, right_feedback = self.cross_feedback_distortion.process_cross_feedback(
+            left_feedback, right_feedback
+        )
         
         # Write to buffers
         self.left_buffer[self.left_write_index] = left_feedback
@@ -242,10 +291,13 @@ class StereoDelay(BaseDelay):
         
     def get_stereo_info(self) -> str:
         """Get stereo-specific information."""
-        return (f"Left: {self.left_delay*1000:.0f}ms, "
-                f"Right: {self.right_delay*1000:.0f}ms, "
-                f"Ping-pong: {'On' if self.ping_pong else 'Off'}, "
-                f"Width: {self.stereo_width*100:.0f}%")
+        base_info = (f"Left: {self.left_delay*1000:.0f}ms, "
+                    f"Right: {self.right_delay*1000:.0f}ms, "
+                    f"Ping-pong: {'On' if self.ping_pong else 'Off'}, "
+                    f"Width: {self.stereo_width*100:.0f}%")
+        
+        distortion_info = self.cross_feedback_distortion.get_info()
+        return f"{base_info} | {distortion_info}"
                 
     def get_parameters(self) -> dict:
         """Get current parameter values including stereo-specific ones."""
@@ -256,7 +308,12 @@ class StereoDelay(BaseDelay):
             'ping_pong': self.ping_pong,
             'stereo_width': self.stereo_width,
             'cross_feedback': self.cross_feedback,
-            'mid_side_enabled': self.mid_side_enabled
+            'mid_side_enabled': self.mid_side_enabled,
+            'cross_feedback_distortion_enabled': self.cross_feedback_distortion.enabled,
+            'distortion_type': self.cross_feedback_distortion.distortion.distortion_type.value,
+            'distortion_drive': self.cross_feedback_distortion.distortion.drive,
+            'distortion_mix': self.cross_feedback_distortion.distortion.mix,
+            'feedback_intensity': self.cross_feedback_distortion.feedback_intensity
         })
         return base_params
         
