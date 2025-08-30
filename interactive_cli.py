@@ -49,6 +49,9 @@ class StereoDelayController:
         # Initialize stereo delay
         self.initialize_stereo_delay()
         
+        # Show default values
+        self.show_default_values()
+        
         print("🎛️ Stereo Delay Controller initialized")
     
     def detect_audio_devices(self):
@@ -137,6 +140,20 @@ class StereoDelayController:
             cross_feedback=self.cross_feedback
         )
         print(f"✅ Stereo delay initialized: {self.stereo_delay.get_info()}")
+        
+    def show_default_values(self):
+        """Display the default parameter values."""
+        print("\n🎛️ Default Parameter Values:")
+        print("=" * 35)
+        print(f"  Left Delay:     {self.left_delay:.2f}s")
+        print(f"  Right Delay:    {self.right_delay:.2f}s")
+        print(f"  Feedback:       {self.feedback:.2f} (0.0-0.9)")
+        print(f"  Wet Mix:        {self.wet_mix:.2f} (0.0-1.0)")
+        print(f"  Stereo Width:   {self.stereo_width:.2f} (0.0-1.0)")
+        print(f"  Cross-feedback: {self.cross_feedback:.2f} (0.0-0.5)")
+        print(f"  Ping-pong:      {'On' if self.ping_pong else 'Off'}")
+        print("\n💡 Use 'help' to see available commands")
+        print("💡 Use 'status' to see current values")
     
     def set_left_delay(self, time: float):
         """Set left channel delay time in seconds."""
@@ -382,6 +399,8 @@ class EnhancedInteractiveCLI:
                 print("❌ Please specify cross-feedback amount (0.0-0.5)")
         elif cmd == "ping":
             self.delay_controller.toggle_ping_pong()
+        elif cmd == "defaults":
+            self.delay_controller.show_default_values()
         else:
             print(f"❌ Unknown command: {cmd}")
             print("💡 Type 'help' for available commands")
@@ -394,6 +413,7 @@ class EnhancedInteractiveCLI:
         print("  start             - Start the stereo delay effects")
         print("  stop              - Stop the stereo delay effects")
         print("  status            - Show current status")
+        print("  defaults          - Show default parameter values")
         print("  quit              - Exit the CLI")
         print("\n🎛️ Stereo Delay Control:")
         print("  left <seconds>    - Set left channel delay time")
@@ -408,6 +428,7 @@ class EnhancedInteractiveCLI:
         print("  • Ping-pong delay patterns")
         print("  • Stereo width enhancement")
         print("  • Cross-feedback between channels")
+        print("  • Cross-feedback distortion (various types)")
     
     def show_status(self):
         """Show current status."""
@@ -424,10 +445,16 @@ class EnhancedInteractiveCLI:
 
 def main():
     """Main entry point."""
+    print("🎸 Guitar Stereo Delay Effects System")
+    print("=" * 45)
+    
     cli = EnhancedInteractiveCLI()
     
     # Start the stereo delay immediately
     cli.delay_controller.start()
+    
+    print("\n🎵 Ready to rock! Type 'help' for commands.")
+    print("=" * 45)
     
     # Run the interactive CLI
     cli.run()
