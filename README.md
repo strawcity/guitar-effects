@@ -1,25 +1,21 @@
-# 🎸 Guitar Delay Effects System
+# 🎸 Guitar Stereo Delay Effects System
 
-A comprehensive real-time guitar delay effects processing system featuring
-professional-quality delay algorithms. This system provides multiple delay
-effect types with real-time parameter control and ultra-low latency processing.
-**Now with full Raspberry Pi support including GPIO button controls and an
-extensive delay effects package!**
+A professional real-time guitar stereo delay effects processing system featuring
+advanced stereo delay algorithms. This system provides rich, spatial delay
+effects with independent left/right channel control and ultra-low latency
+processing. **Now with full Raspberry Pi support including GPIO button controls
+and immediate audio processing!**
 
 ## Features
 
-### 🎛️ **Professional Delay Effects Package**
+### 🎛️ **Professional Stereo Delay Effect**
 
-- **Basic Delay**: Clean echo effects with stereo separation and configurable
-  delay time and feedback
-- **Tape Delay**: Vintage tape-style delay with saturation, modulation, and
-  stereo phase effects
-- **Multi-Tap Delay**: Complex delay patterns with multiple delay lines and
-  stereo panning
-- **Tempo-Synced Delay**: Musical timing synchronization with tempo-based stereo
-  modulation
-- **Stereo Delay**: Ping-pong and stereo width enhancement effects with
-  independent left/right delays
+- **Stereo Delay**: Advanced stereo delay with independent left/right channel
+  control, ping-pong patterns, and stereo width enhancement
+- **Cross-feedback**: Allows delays to feed back between left and right channels
+  for complex spatial effects
+- **Real-time Control**: Adjust all parameters during playback for dynamic
+  performance
 
 ### ⚙️ **System Features**
 
@@ -48,7 +44,7 @@ packages:
    Pi-specific optimizations
 2. **GPIOInterface** (`gpio_interface.py`): Raspberry Pi GPIO control for
    buttons
-3. **Main System** (`main.py`): Primary delay effects processing system
+3. **Main System** (`main.py`): Primary stereo delay processing system
 
 ### 🎛️ **Delay Effects Package** (`delay/`)
 
@@ -123,7 +119,7 @@ installation. You **must** use a virtual environment. If you get an
 "externally-managed-environment" error, follow the virtual environment setup
 above.
 
-## Delay Effects Package
+## Stereo Delay Effects Package
 
 The guitar effects system includes a professional-quality stereo delay effect
 with advanced features:
@@ -154,7 +150,7 @@ left_output, right_output = stereo_delay.process_buffer(left_input, right_input)
 ### 🚀 **Quick Start with Stereo Delay**
 
 ```bash
-# Test stereo delay effects
+# Test stereo delay effect
 python test_delay_effects.py
 
 # Test stereo system
@@ -254,8 +250,8 @@ The system will:
 1. **Auto-detect platform** and apply optimizations
 2. **Initialize GPIO** (if on Pi)
 3. **Detect audio devices** based on platform priorities
-4. **Run demo mode** with different delay effects
-5. **Start real-time processing** with guitar input
+4. **Start stereo delay processing** immediately
+5. **Begin real-time processing** with guitar input
 
 ### Platform-Specific Behavior
 
@@ -276,11 +272,11 @@ The system will:
 Once running, you can use these commands:
 
 ```python
-# Set delay time
-system.set_delay_time(0.8)
+# Set left delay time
+system.set_left_delay(0.4)
 
-# Change delay effect type
-system.set_delay_effect('tape')
+# Set right delay time
+system.set_right_delay(0.8)
 
 # Adjust feedback
 system.set_feedback(0.5)
@@ -288,8 +284,8 @@ system.set_feedback(0.5)
 # Adjust wet mix
 system.set_wet_mix(0.7)
 
-# Run demo mode
-system.demo_mode()
+# Toggle ping-pong mode
+system.toggle_ping_pong()
 
 # Stop the system
 system.stop()
@@ -305,13 +301,14 @@ system.gpio.get_status()
 system.gpio.simulate_button_press('start')
 ```
 
-### Available Delay Effects
+### Stereo Delay Features
 
-- `basic`: Clean echo effect with configurable parameters
-- `tape`: Vintage tape-style delay with analog characteristics
-- `multi`: Multi-tap delay with complex patterns
-- `tempo`: Tempo-synced delay for musical timing
-- `stereo`: Stereo ping-pong and width enhancement
+- **Independent left/right delays**: Set different delay times for each channel
+- **Ping-pong patterns**: Creates bouncing delay effects between channels
+- **Stereo width enhancement**: Expands the stereo image using mid-side
+  processing
+- **Cross-feedback**: Allows delays to feed back between left and right channels
+- **Real-time control**: Adjust all parameters during playback
 
 ## Testing
 
@@ -321,11 +318,11 @@ Run the test suite to verify all components work correctly:
 # Test main system components
 python test_system.py
 
-# Test delay effects package
+# Test stereo delay effect
 python test_delay_effects.py
 
-# Run delay effects demo
-python -m delay.demo
+# Test stereo system
+python test_stereo_system.py
 ```
 
 ### 🧪 **Test Coverage**
@@ -336,18 +333,18 @@ python -m delay.demo
 - GPIO interface (on Pi)
 - Audio device detection
 
-**Delay Effects Tests** (`test_delay_effects.py`):
+**Stereo Delay Tests** (`test_delay_effects.py`):
 
-- All delay effect imports and instantiation
-- Basic audio processing functionality
+- Stereo delay effect instantiation and configuration
+- Audio processing functionality
 - Parameter validation and clipping
 - Buffer management and memory efficiency
 
-**Delay Effects Demo** (`delay/demo.py`):
+**Stereo System Tests** (`test_stereo_system.py`):
 
-- Comprehensive demonstration of all delay types
+- Comprehensive demonstration of stereo delay features
 - Parameter adjustment examples
-- Audio processing demonstrations
+- Real-time audio processing demonstrations
 - Integration examples
 
 ## Audio Setup
@@ -359,13 +356,13 @@ output audio through the Scarlett 2i2's monitor outputs:
 
 1. **Connect your headphones** to the Scarlett 2i2's monitor jack
 2. **Set the Scarlett 2i2 Direct Monitor** to OFF (no pass-through needed)
-3. **The delay effects output** will be sent to the monitor outputs
-4. **You'll hear** the processed delay effects when you play guitar
+3. **The stereo delay output** will be sent to the monitor outputs
+4. **You'll hear** the processed stereo delay when you play guitar
 
 **Audio Flow:**
 
 ```
-Guitar → Scarlett 2i2 Input → Raspberry Pi → Delay Processing → Scarlett 2i2 Output → Monitor/Headphones
+Guitar → Scarlett 2i2 Input → Raspberry Pi → Stereo Delay Processing → Scarlett 2i2 Output → Monitor/Headphones
 ```
 
 ### Platform-Specific Audio Configuration
@@ -567,9 +564,9 @@ python -c "import sounddevice as sd; sd.default.device = 'default'; print('Audio
 
 ## Development
 
-### Adding New Delay Effects
+### Adding New Effects
 
-To add a new delay effect:
+To add a new effect:
 
 1. Create a new class inheriting from `BaseDelay`
 2. Implement the required methods (`process_buffer`, `set_parameters`)
@@ -604,7 +601,7 @@ self.gpio.register_button_callback('sensor', self.handle_sensor_event)
 
 ## Future Development
 
-The guitar delay effects system is designed for continuous expansion and
+The guitar stereo delay effects system is designed for continuous expansion and
 enhancement:
 
 ### 🚀 **Planned Effects Packages**
@@ -647,5 +644,5 @@ Contributions are welcome! Please:
 ## Acknowledgments
 
 - Built with NumPy, SciPy, and sounddevice
-- Inspired by classic delay effects and modern music production tools
+- Inspired by classic stereo delay effects and modern music production tools
 - Designed for real-time performance and creative expression
