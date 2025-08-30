@@ -24,6 +24,7 @@ MANIFEST
 # Rust
 target/
 rust_audio_processor/target/
+rust_audio_processor/target/deps
 Cargo.lock
 
 # Virtual Environment
