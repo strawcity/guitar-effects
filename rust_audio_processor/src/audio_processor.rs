@@ -160,10 +160,13 @@ impl AudioProcessor {
         let input_device = if let Ok(mut devices) = host.input_devices() {
             devices.find(|device| {
                 device.name().map(|name| {
-                    name.to_lowercase().contains("usb") || 
-                    name.to_lowercase().contains("scarlett") ||
-                    name.to_lowercase().contains("focusrite") ||
-                    name.to_lowercase().contains("2i2")
+                    let name_lower = name.to_lowercase();
+                    name_lower.contains("usb") || 
+                    name_lower.contains("scarlett") ||
+                    name_lower.contains("focusrite") ||
+                    name_lower.contains("2i2") ||
+                    name_lower.contains("card=usb") ||
+                    name_lower.contains("hw:card=usb")
                 }).unwrap_or(false)
             }).or_else(|| {
                 println!("⚠️  No USB audio input device found, trying default...");
@@ -180,10 +183,13 @@ impl AudioProcessor {
         let output_device = if let Ok(mut devices) = host.output_devices() {
             devices.find(|device| {
                 device.name().map(|name| {
-                    name.to_lowercase().contains("usb") || 
-                    name.to_lowercase().contains("scarlett") ||
-                    name.to_lowercase().contains("focusrite") ||
-                    name.to_lowercase().contains("2i2")
+                    let name_lower = name.to_lowercase();
+                    name_lower.contains("usb") || 
+                    name_lower.contains("scarlett") ||
+                    name_lower.contains("focusrite") ||
+                    name_lower.contains("2i2") ||
+                    name_lower.contains("card=usb") ||
+                    name_lower.contains("hw:card=usb")
                 }).unwrap_or(false)
             }).or_else(|| {
                 println!("⚠️  No USB audio output device found, trying default...");
