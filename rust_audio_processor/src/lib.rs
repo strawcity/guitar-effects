@@ -11,7 +11,7 @@ pub mod error;
 #[cfg(target_os = "linux")]
 pub mod alsa_processor;
 
-use crate::error::AudioProcessorError;
+
 
 /// Common trait for audio processors
 pub trait AudioProcessorTrait {
