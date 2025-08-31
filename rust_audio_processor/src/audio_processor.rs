@@ -129,7 +129,7 @@ impl AudioProcessor {
     
     /// Run the audio stream
     fn run_audio_stream(
-        config: AudioConfig,
+        _config: AudioConfig,
         stereo_delay: Arc<Mutex<StereoDelay>>,
         is_running: Arc<RwLock<bool>>,
     ) -> Result<(), AudioProcessorError> {
@@ -143,9 +143,9 @@ impl AudioProcessor {
         
         // Get supported configs
         let input_config = input_device.default_input_config()
-            .map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        let output_config = output_device.default_output_config()
-            .map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+            .map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        let _output_config = output_device.default_output_config()
+            .map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         
         // Create audio stream
         let stream = input_device.build_input_stream(

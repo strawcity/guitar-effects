@@ -1,4 +1,4 @@
-use rust_audio_processor::{AudioProcessor, AudioConfig, DistortionType};
+use rust_audio_processor::AudioProcessor;
 use std::io::{self, Write};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

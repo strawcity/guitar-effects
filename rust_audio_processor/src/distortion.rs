@@ -45,7 +45,7 @@ pub struct DistortionEffect {
     distortion_type: DistortionType,
     drive: f32,
     mix: f32,
-    sample_rate: u32,
+    _sample_rate: u32,
     
     // Distortion-specific parameters
     bit_depth: u8,
@@ -65,7 +65,7 @@ impl DistortionEffect {
             distortion_type,
             drive: drive.clamp(0.0, 1.0),
             mix: mix.clamp(0.0, 1.0),
-            sample_rate,
+            _sample_rate: sample_rate,
             bit_depth: 8,
             sample_rate_reduction: 0.5,
             last_sample: 0.0,
@@ -198,7 +198,7 @@ pub struct CrossFeedbackDistortion {
     enabled: bool,
     distortion: DistortionEffect,
     feedback_intensity: f32,
-    frequency_dependent: bool,
+    _frequency_dependent: bool,
 }
 
 impl CrossFeedbackDistortion {
@@ -214,7 +214,7 @@ impl CrossFeedbackDistortion {
             enabled,
             distortion: DistortionEffect::new(distortion_type, drive, mix, sample_rate),
             feedback_intensity: 0.5,
-            frequency_dependent: true,
+            _frequency_dependent: true,
         }
     }
     

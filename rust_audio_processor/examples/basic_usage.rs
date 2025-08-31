@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     
     // Create audio processor with custom configuration
-    let mut processor = AudioProcessor::with_config(config)?;
+    let processor = AudioProcessor::with_config(config)?;
     
     println!("✅ Audio processor created successfully!");
     println!("📊 Configuration:");

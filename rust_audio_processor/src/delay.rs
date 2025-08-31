@@ -185,8 +185,8 @@ pub struct StereoDelay {
     cross_feedback: f32,
     
     // Separate buffers for left and right channels
-    left_buffer_size: usize,
-    right_buffer_size: usize,
+    _left_buffer_size: usize,
+    _right_buffer_size: usize,
     left_buffer: Vec<f32>,
     right_buffer: Vec<f32>,
     left_write_index: usize,
@@ -229,8 +229,8 @@ impl StereoDelay {
             ping_pong,
             stereo_width: stereo_width.clamp(0.0, 1.0),
             cross_feedback: cross_feedback.clamp(0.0, 0.5),
-            left_buffer_size,
-            right_buffer_size,
+            _left_buffer_size: left_buffer_size,
+            _right_buffer_size: right_buffer_size,
             left_buffer: vec![0.0; left_buffer_size],
             right_buffer: vec![0.0; right_buffer_size],
             left_write_index: 0,
