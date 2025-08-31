@@ -158,7 +158,11 @@ impl AudioProcessor {
         
         // Try to find Scarlett 2i2 specifically with more flexible matching
         let input_device = if let Ok(mut devices) = host.input_devices() {
-            devices.find(|device| {
+            // Collect all devices first to avoid enumeration issues
+            let device_list: Vec<_> = devices.collect();
+            println!("🔍 Found {} input devices to check", device_list.len());
+            
+            device_list.into_iter().find(|device| {
                 device.name().map(|name| {
                     let name_lower = name.to_lowercase();
                     println!("🔍 Checking input device: '{}'", name);
@@ -182,7 +186,11 @@ impl AudioProcessor {
         })?;
             
         let output_device = if let Ok(mut devices) = host.output_devices() {
-            devices.find(|device| {
+            // Collect all devices first to avoid enumeration issues
+            let device_list: Vec<_> = devices.collect();
+            println!("🔍 Found {} output devices to check", device_list.len());
+            
+            device_list.into_iter().find(|device| {
                 device.name().map(|name| {
                     let name_lower = name.to_lowercase();
                     println!("🔍 Checking output device: '{}'", name);
