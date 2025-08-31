@@ -8,7 +8,7 @@ use crate::delay::StereoDelay;
 use crate::distortion::DistortionType;
 use crate::error::AudioProcessorError;
 #[cfg(target_os = "linux")]
-use alsa::{pcm::PCM, Direction, ValueOr, Format};
+use alsa::{pcm::{PCM, Format}, Direction, ValueOr};
 
 #[cfg(target_os = "linux")]
 /// ALSA-based audio processor for direct hardware access
@@ -126,21 +126,21 @@ impl AlsaAudioProcessor {
         
         // Configure input PCM
         let input_hwp = input_pcm.hwp();
-        input_hwp.set_channels(2)?;
-        input_hwp.set_rate(config.sample_rate, ValueOr::Nearest)?;
-        input_hwp.set_format(Format::s32())?;
-        input_hwp.set_access(alsa::pcm::Access::RWInterleaved)?;
-        input_pcm.prepare()?;
+        input_hwp.set_channels(2).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        input_hwp.set_rate(config.sample_rate, ValueOr::Nearest).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        input_hwp.set_format(Format::s32()).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        input_hwp.set_access(alsa::pcm::Access::RWInterleaved).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        input_pcm.prepare().map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         
         println!("🎤 Input configured: {} Hz, 2 channels, S32", config.sample_rate);
         
         // Configure output PCM
         let output_hwp = output_pcm.hwp();
-        output_hwp.set_channels(2)?;
-        output_hwp.set_rate(config.sample_rate, ValueOr::Nearest)?;
-        output_hwp.set_format(Format::s32())?;
-        output_hwp.set_access(alsa::pcm::Access::RWInterleaved)?;
-        output_pcm.prepare()?;
+        output_hwp.set_channels(2).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        output_hwp.set_rate(config.sample_rate, ValueOr::Nearest).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        output_hwp.set_format(Format::s32()).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        output_hwp.set_access(alsa::pcm::Access::RWInterleaved).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        output_pcm.prepare().map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         
         println!("🔊 Output configured: {} Hz, 2 channels, S32", config.sample_rate);
         
@@ -153,7 +153,7 @@ impl AlsaAudioProcessor {
         
         while *is_running.read() {
             // Read input
-            match input_pcm.readi(&mut input_buffer) {
+            match input_pcm.read(&mut input_buffer) {
                 Ok(_) => {
                     // Process audio through stereo delay
                     if let Ok(mut delay) = stereo_delay.lock() {
@@ -176,7 +176,7 @@ impl AlsaAudioProcessor {
                     }
                     
                     // Write output
-                    if let Err(e) = output_pcm.writei(&output_buffer) {
+                    if let Err(e) = output_pcm.write(&output_buffer) {
                         eprintln!("Output write error: {}", e);
                     }
                 }
