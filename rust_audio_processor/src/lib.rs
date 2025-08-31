@@ -85,6 +85,10 @@ impl AudioProcessorTrait for alsa_processor::AlsaAudioProcessor {
     fn set_distortion_type(&self, distortion_type: &str) -> std::result::Result<(), AudioProcessorError> {
         self.set_distortion_type(distortion_type)
     }
+    
+    fn reset_delay(&self) -> std::result::Result<(), AudioProcessorError> {
+        self.reset_delay()
+    }
 }
 
 // Re-export commonly used types
