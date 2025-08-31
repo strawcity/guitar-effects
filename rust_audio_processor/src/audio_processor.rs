@@ -164,23 +164,9 @@ impl AudioProcessor {
         println!("🎵 Using ALSA host for direct hardware access...");
         
         // List available devices for debugging
-        println!("📋 Available input devices:");
-        if let Ok(devices) = host.input_devices() {
-            for (i, device) in devices.enumerate() {
-                if let Ok(name) = device.name() {
-                    println!("  [{}] {}", i, name);
-                }
-            }
-        }
+
         
-        println!("📋 Available output devices:");
-        if let Ok(devices) = host.output_devices() {
-            for (i, device) in devices.enumerate() {
-                if let Ok(name) = device.name() {
-                    println!("  [{}] {}", i, name);
-                }
-            }
-        }
+
         
         // Also try to list all devices with more detail
         println!("🔍 Detailed device enumeration:");
