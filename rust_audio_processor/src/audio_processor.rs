@@ -157,21 +157,21 @@ impl AudioProcessor {
         }
         
         // Try to find Scarlett 2i2 specifically, fall back to default
-        let input_device = host.input_devices()
-            .unwrap_or_default()
-            .find(|device| {
+        let input_device = if let Ok(mut devices) = host.input_devices() {
+            devices.find(|device| {
                 device.name().map(|name| name.contains("USB") || name.contains("Scarlett")).unwrap_or(false)
-            })
-            .or_else(|| host.default_input_device())
-            .ok_or_else(|| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+            }).or_else(|| host.default_input_device())
+        } else {
+            host.default_input_device()
+        }.ok_or_else(|| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
             
-        let output_device = host.output_devices()
-            .unwrap_or_default()
-            .find(|device| {
+        let output_device = if let Ok(mut devices) = host.output_devices() {
+            devices.find(|device| {
                 device.name().map(|name| name.contains("USB") || name.contains("Scarlett")).unwrap_or(false)
-            })
-            .or_else(|| host.default_output_device())
-            .ok_or_else(|| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+            }).or_else(|| host.default_output_device())
+        } else {
+            host.default_output_device()
+        }.ok_or_else(|| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         
         println!("🎤 Using input device: {}", input_device.name().unwrap_or_else(|_| "Unknown".to_string()));
         println!("🔊 Using output device: {}", output_device.name().unwrap_or_else(|_| "Unknown".to_string()));
