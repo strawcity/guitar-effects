@@ -1,4 +1,4 @@
-use rust_audio_processor::{config::AudioConfig, audio_processor::AudioProcessor};
+use rust_audio_processor::{config::AudioConfig, audio_processor::AudioProcessor, AudioProcessorTrait};
 #[cfg(target_os = "linux")]
 use rust_audio_processor::alsa_processor::AlsaAudioProcessor;
 use std::io::{self, Write};
@@ -87,7 +87,7 @@ fn show_cli_help() {
     println!("  cross_feedback=0.2  - Cross-feedback between channels (0.0-0.5)");
 }
 
-fn daemon_mode(processor: &mut AudioProcessor) -> Result<(), Box<dyn std::error::Error>> {
+fn daemon_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<dyn std::error::Error>> {
     println!("🎵 Starting audio processing daemon...");
     println!("📊 Initial status:");
     show_status(processor)?;
@@ -133,7 +133,7 @@ fn daemon_mode(processor: &mut AudioProcessor) -> Result<(), Box<dyn std::error:
     }
 }
 
-fn interactive_mode(processor: &mut AudioProcessor) -> Result<(), Box<dyn std::error::Error>> {
+fn interactive_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🎛️  Interactive Parameter Control");
     println!("Type 'help' for available commands, 'quit' to exit\n");
     
@@ -201,7 +201,7 @@ fn show_help() {
     println!("\nExample: feedback=0.5");
 }
 
-fn show_status(processor: &AudioProcessor) -> Result<(), Box<dyn std::error::Error>> {
+fn show_status(processor: &dyn AudioProcessorTrait) -> Result<(), Box<dyn std::error::Error>> {
     let status = processor.get_status()?;
     println!("\n📊 System Status:");
     for (key, value) in status {
