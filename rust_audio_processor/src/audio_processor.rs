@@ -227,6 +227,7 @@ impl AudioProcessor {
             AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable)
         })?;
             
+        // Bypass the broken output device enumeration and directly use USB device
         let output_device = if let Ok(mut devices) = host.output_devices() {
             // Collect all devices first to avoid enumeration issues
             let device_list: Vec<_> = devices.collect();
@@ -242,40 +243,44 @@ impl AudioProcessor {
                 }
             }
             
-            // First try to use configured output device
-            if let Some(ref configured_device) = config.output_device {
-                println!("🎯 Looking for configured output device: '{}'", configured_device);
-                if let Some(device) = find_device_by_name(device_list.clone(), configured_device) {
-                    println!("✅ Found configured output device: '{}'", configured_device);
-                    Some(device)
-                } else {
-                    println!("⚠️  Configured output device '{}' not found, falling back to USB detection", configured_device);
-                    None
+            // Since the output device enumeration is broken, let's try to find USB devices
+            // by checking if any device name contains USB-related strings
+            let mut usb_device = None;
+            for device in &device_list {
+                if let Ok(name) = device.name() {
+                    let name_lower = name.to_lowercase();
+                    if name_lower.contains("usb") || 
+                       name_lower.contains("scarlett") ||
+                       name_lower.contains("focusrite") ||
+                       name_lower.contains("2i2") ||
+                       name_lower.contains("card=usb") ||
+                       name_lower.contains("hw:card=usb") ||
+                       name_lower.contains("plughw:card=usb") {
+                        println!("✅ Found USB output device: '{}'", name);
+                        usb_device = Some(device.clone());
+                        break;
+                    }
                 }
+            }
+            
+            // If we found a USB device, use it
+            if let Some(device) = usb_device {
+                Some(device)
             } else {
-                None
-            }.or_else(|| {
-                // Fallback to USB device detection
-                device_list.into_iter().find(|device| {
-                    device.name().map(|name| {
-                        let name_lower = name.to_lowercase();
-                        println!("🔍 Checking output device: '{}'", name);
-                        let matches = name_lower.contains("usb") || 
-                            name_lower.contains("scarlett") ||
-                            name_lower.contains("focusrite") ||
-                            name_lower.contains("2i2") ||
-                            name_lower.contains("card=usb") ||
-                            name_lower.contains("hw:card=usb");
-                        if matches {
-                            println!("✅ Found matching output device: '{}'", name);
-                        }
-                        matches
-                    }).unwrap_or(false)
-                })
-            }).or_else(|| {
-                println!("⚠️  No USB audio output device found, trying default...");
-                host.default_output_device()
-            })
+                // Try configured device first
+                if let Some(ref configured_device) = config.output_device {
+                    println!("🎯 Looking for configured output device: '{}'", configured_device);
+                    if let Some(device) = find_device_by_name(device_list.clone(), configured_device) {
+                        println!("✅ Found configured output device: '{}'", configured_device);
+                        Some(device)
+                    } else {
+                        println!("⚠️  Configured output device '{}' not found, falling back to default", configured_device);
+                        host.default_output_device()
+                    }
+                } else {
+                    host.default_output_device()
+                }
+            }
         } else {
             println!("⚠️  Could not enumerate output devices, using default...");
             host.default_output_device()
