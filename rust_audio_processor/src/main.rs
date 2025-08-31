@@ -1,4 +1,4 @@
-use rust_audio_processor::AudioProcessor;
+use rust_audio_processor::{AudioProcessor, config::AudioConfig};
 use std::io::{self, Write};
 use std::env;
 
@@ -17,8 +17,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
     
-    // Create audio processor with default configuration
-    let mut processor = AudioProcessor::new()?;
+    // Load configuration from file or use default
+    let config = AudioConfig::load_or_default("pi_config.json");
+    println!("📋 Loaded configuration:");
+    println!("   Sample rate: {} Hz", config.sample_rate);
+    println!("   Buffer size: {}", config.buffer_size);
+    println!("   Input device: {:?}", config.input_device);
+    println!("   Output device: {:?}", config.output_device);
+    
+    // Create audio processor with loaded configuration
+    let mut processor = AudioProcessor::with_config(config)?;
     
     // Test the audio processing
     println!("Testing audio processing...");

@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
 
 /// Audio configuration settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -76,6 +78,20 @@ impl Default for AudioConfig {
             stereo_delay: StereoDelayConfig::default(),
             distortion: DistortionConfig::default(),
         }
+    }
+}
+
+impl AudioConfig {
+    /// Load configuration from a JSON file
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
+        let content = fs::read_to_string(path)?;
+        let config: AudioConfig = serde_json::from_str(&content)?;
+        Ok(config)
+    }
+    
+    /// Load configuration from file or return default if file doesn't exist
+    pub fn load_or_default<P: AsRef<Path>>(path: P) -> Self {
+        Self::from_file(path).unwrap_or_else(|_| Self::default())
     }
 }
 

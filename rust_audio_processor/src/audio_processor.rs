@@ -10,6 +10,13 @@ use crate::delay::StereoDelay;
 use crate::distortion::DistortionType;
 use crate::error::AudioProcessorError;
 
+/// Helper function to find a device by name
+fn find_device_by_name(devices: Vec<cpal::Device>, target_name: &str) -> Option<cpal::Device> {
+    devices.into_iter().find(|device| {
+        device.name().map(|name| name == target_name).unwrap_or(false)
+    })
+}
+
 /// Unified audio processor for guitar stereo delay effects system
 pub struct AudioProcessor {
     config: AudioConfig,
@@ -129,7 +136,7 @@ impl AudioProcessor {
     
     /// Run the audio stream
     fn run_audio_stream(
-        _config: AudioConfig,
+        config: AudioConfig,
         stereo_delay: Arc<Mutex<StereoDelay>>,
         is_running: Arc<RwLock<bool>>,
     ) -> Result<(), AudioProcessorError> {
@@ -156,23 +163,38 @@ impl AudioProcessor {
             }
         }
         
-        // Try to find Scarlett 2i2 specifically with more flexible matching
+        // Try to find input device based on configuration or fallback to USB detection
         let input_device = if let Ok(mut devices) = host.input_devices() {
             // Collect all devices first to avoid enumeration issues
             let device_list: Vec<_> = devices.collect();
             println!("🔍 Found {} input devices to check", device_list.len());
             
-            device_list.into_iter().find(|device| {
-                device.name().map(|name| {
-                    let name_lower = name.to_lowercase();
-                    println!("🔍 Checking input device: '{}'", name);
-                    name_lower.contains("usb") || 
-                    name_lower.contains("scarlett") ||
-                    name_lower.contains("focusrite") ||
-                    name_lower.contains("2i2") ||
-                    name_lower.contains("card=usb") ||
-                    name_lower.contains("hw:card=usb")
-                }).unwrap_or(false)
+            // First try to use configured input device
+            if let Some(ref configured_device) = config.input_device {
+                println!("🎯 Looking for configured input device: '{}'", configured_device);
+                if let Some(device) = find_device_by_name(device_list.clone(), configured_device) {
+                    println!("✅ Found configured input device: '{}'", configured_device);
+                    Some(device)
+                } else {
+                    println!("⚠️  Configured input device '{}' not found, falling back to USB detection", configured_device);
+                    None
+                }
+            } else {
+                None
+            }.or_else(|| {
+                // Fallback to USB device detection
+                device_list.into_iter().find(|device| {
+                    device.name().map(|name| {
+                        let name_lower = name.to_lowercase();
+                        println!("🔍 Checking input device: '{}'", name);
+                        name_lower.contains("usb") || 
+                        name_lower.contains("scarlett") ||
+                        name_lower.contains("focusrite") ||
+                        name_lower.contains("2i2") ||
+                        name_lower.contains("card=usb") ||
+                        name_lower.contains("hw:card=usb")
+                    }).unwrap_or(false)
+                })
             }).or_else(|| {
                 println!("⚠️  No USB audio input device found, trying default...");
                 host.default_input_device()
@@ -200,21 +222,36 @@ impl AudioProcessor {
                 }
             }
             
-            device_list.into_iter().find(|device| {
-                device.name().map(|name| {
-                    let name_lower = name.to_lowercase();
-                    println!("🔍 Checking output device: '{}'", name);
-                    let matches = name_lower.contains("usb") || 
-                        name_lower.contains("scarlett") ||
-                        name_lower.contains("focusrite") ||
-                        name_lower.contains("2i2") ||
-                        name_lower.contains("card=usb") ||
-                        name_lower.contains("hw:card=usb");
-                    if matches {
-                        println!("✅ Found matching output device: '{}'", name);
-                    }
-                    matches
-                }).unwrap_or(false)
+            // First try to use configured output device
+            if let Some(ref configured_device) = config.output_device {
+                println!("🎯 Looking for configured output device: '{}'", configured_device);
+                if let Some(device) = find_device_by_name(device_list.clone(), configured_device) {
+                    println!("✅ Found configured output device: '{}'", configured_device);
+                    Some(device)
+                } else {
+                    println!("⚠️  Configured output device '{}' not found, falling back to USB detection", configured_device);
+                    None
+                }
+            } else {
+                None
+            }.or_else(|| {
+                // Fallback to USB device detection
+                device_list.into_iter().find(|device| {
+                    device.name().map(|name| {
+                        let name_lower = name.to_lowercase();
+                        println!("🔍 Checking output device: '{}'", name);
+                        let matches = name_lower.contains("usb") || 
+                            name_lower.contains("scarlett") ||
+                            name_lower.contains("focusrite") ||
+                            name_lower.contains("2i2") ||
+                            name_lower.contains("card=usb") ||
+                            name_lower.contains("hw:card=usb");
+                        if matches {
+                            println!("✅ Found matching output device: '{}'", name);
+                        }
+                        matches
+                    }).unwrap_or(false)
+                })
             }).or_else(|| {
                 println!("⚠️  No USB audio output device found, trying default...");
                 host.default_output_device()
