@@ -160,7 +160,7 @@ impl AlsaAudioProcessor {
         let mut frames_processed = 0;
         while *is_running.read() {
             // Read input using the correct ALSA API
-            match input_pcm.read(&mut input_buffer) {
+            match input_pcm.io_i32().read(&mut input_buffer) {
                 Ok(_) => {
                     // Process audio through stereo delay
                     if let Ok(mut delay) = stereo_delay.lock() {
@@ -183,7 +183,7 @@ impl AlsaAudioProcessor {
                     }
                     
                     // Write output using the correct ALSA API
-                    if let Err(e) = output_pcm.write(&output_buffer) {
+                    if let Err(e) = output_pcm.io_i32().write(&output_buffer) {
                         eprintln!("Output write error: {}", e);
                     }
                     
