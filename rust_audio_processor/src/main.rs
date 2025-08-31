@@ -74,6 +74,7 @@ fn show_cli_help() {
     println!("Interactive Commands:");
     println!("  start               - Start real-time audio processing");
     println!("  stop                - Stop real-time audio processing");
+    println!("  reset               - Reset delay buffers (clear feedback)");
     println!("  status              - Show current system status");
     println!("  test                - Run audio test");
     println!("  quit/exit           - Exit the program");
@@ -167,6 +168,13 @@ fn interactive_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<d
                     Err(e) => println!("❌ Error: {}", e),
                 }
             }
+            "reset" => {
+                println!("Resetting delay buffers...");
+                match processor.reset_delay() {
+                    Ok(_) => println!("✅ Delay buffers reset!"),
+                    Err(e) => println!("❌ Error: {}", e),
+                }
+            }
             _ => {
                 if let Some((param, value)) = parse_parameter(input) {
                     match processor.set_stereo_delay_parameter(param, value) {
@@ -197,6 +205,7 @@ fn show_help() {
     println!("  test                    - Run audio test");
     println!("  start                   - Start real-time audio processing");
     println!("  stop                    - Stop real-time audio processing");
+    println!("  reset                   - Reset delay buffers (clear feedback)");
     println!("  quit/exit               - Exit the program");
     println!("\n🎛️  Parameter Settings (format: parameter=value):");
     println!("  left_delay=0.3          - Left channel delay time (seconds)");

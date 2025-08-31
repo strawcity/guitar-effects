@@ -21,6 +21,7 @@ pub trait AudioProcessorTrait {
     fn get_status(&self) -> std::result::Result<std::collections::HashMap<String, String>, AudioProcessorError>;
     fn set_stereo_delay_parameter(&self, param: &str, value: f32) -> std::result::Result<(), AudioProcessorError>;
     fn set_distortion_type(&self, distortion_type: &str) -> std::result::Result<(), AudioProcessorError>;
+    fn reset_delay(&self) -> std::result::Result<(), AudioProcessorError>;
 }
 
 // Implement the trait for AudioProcessor
@@ -47,6 +48,10 @@ impl AudioProcessorTrait for audio_processor::AudioProcessor {
     
     fn set_distortion_type(&self, distortion_type: &str) -> std::result::Result<(), AudioProcessorError> {
         self.set_distortion_type(distortion_type)
+    }
+    
+    fn reset_delay(&self) -> std::result::Result<(), AudioProcessorError> {
+        self.reset_delay()
     }
 }
 

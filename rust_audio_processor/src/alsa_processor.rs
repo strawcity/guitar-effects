@@ -93,6 +93,9 @@ impl AlsaAudioProcessor {
             })?;
         }
         
+        // Reset delay buffers to clear any lingering feedback
+        self.reset_delay()?;
+        
         Ok(())
     }
     
@@ -192,9 +195,6 @@ impl AlsaAudioProcessor {
                     }
                     
                     frames_processed += 1;
-                    if frames_processed % 100 == 0 {
-                        println!("🎵 Processed {} audio frames", frames_processed);
-                    }
                 }
                 Err(e) => {
                     eprintln!("Input read error: {}", e);
@@ -247,6 +247,17 @@ impl AlsaAudioProcessor {
         
         let dist_type = DistortionType::from(distortion_type);
         delay.set_cross_feedback_distortion(None, Some(dist_type), None, None, None);
+        
+        Ok(())
+    }
+    
+    /// Reset the delay buffers to clear any lingering feedback
+    pub fn reset_delay(&self) -> Result<(), AudioProcessorError> {
+        let mut delay = self.stereo_delay.lock().map_err(|_| {
+            AudioProcessorError::Threading("Failed to acquire stereo delay lock".to_string())
+        })?;
+        
+        delay.reset();
         
         Ok(())
     }

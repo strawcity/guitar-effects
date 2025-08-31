@@ -106,6 +106,17 @@ impl AudioProcessor {
         Ok(())
     }
     
+    /// Reset the delay buffers to clear any lingering feedback
+    pub fn reset_delay(&self) -> Result<(), AudioProcessorError> {
+        let mut delay = self.stereo_delay.lock().map_err(|_| {
+            AudioProcessorError::Threading("Failed to acquire stereo delay lock".to_string())
+        })?;
+        
+        delay.reset();
+        
+        Ok(())
+    }
+    
     /// Process audio through stereo delay effect
     pub fn process_audio(&self, input_audio: &[f32]) -> Result<Vec<f32>, AudioProcessorError> {
         if input_audio.is_empty() {
@@ -545,6 +556,10 @@ impl AudioProcessor {
     
     /// Stop audio processing
     pub fn stop_audio(&mut self) -> Result<(), AudioProcessorError> {
+        if !*self.is_running.read() {
+            return Err(AudioProcessorError::Processing("Audio not running".to_string()));
+        }
+        
         *self.is_running.write() = false;
         
         if let Some(thread) = self.audio_thread.take() {
@@ -552,6 +567,9 @@ impl AudioProcessor {
                 AudioProcessorError::Threading("Failed to join audio thread".to_string())
             })?;
         }
+        
+        // Reset delay buffers to clear any lingering feedback
+        self.reset_delay()?;
         
         Ok(())
     }
