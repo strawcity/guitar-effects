@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse command line arguments
     let args: Vec<String> = env::args().collect();
     let is_daemon_mode = args.contains(&"--daemon".to_string());
-    let device_arg = args.iter().position(|arg| arg == "--device").map(|i| args.get(i + 1));
+    let _device_arg = args.iter().position(|arg| arg == "--device").map(|i| args.get(i + 1));
     
     // Show help if requested
     if args.contains(&"--help".to_string()) || args.contains(&"-h".to_string()) {

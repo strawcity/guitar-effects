@@ -129,24 +129,24 @@ impl AlsaAudioProcessor {
         println!("✅ Successfully opened output device: {}", output_device);
         
         // Configure input PCM using the correct ALSA API
-        let input_hwp = HwParams::any(&input_pcm).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        input_hwp.set_channels(2).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        input_hwp.set_rate(config.sample_rate, ValueOr::Nearest).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        input_hwp.set_format(Format::s32()).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        input_hwp.set_access(alsa::pcm::Access::RWInterleaved).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        input_pcm.hw_params(&input_hwp).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        input_pcm.prepare().map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        let input_hwp = HwParams::any(&input_pcm).map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        input_hwp.set_channels(2).map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        input_hwp.set_rate(config.sample_rate, ValueOr::Nearest).map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        input_hwp.set_format(Format::s32()).map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        input_hwp.set_access(alsa::pcm::Access::RWInterleaved).map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        input_pcm.hw_params(&input_hwp).map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        input_pcm.prepare().map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         
         println!("🎤 Input configured: {} Hz, 2 channels, S32", config.sample_rate);
         
         // Configure output PCM using the correct ALSA API
-        let output_hwp = HwParams::any(&output_pcm).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        output_hwp.set_channels(2).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        output_hwp.set_rate(config.sample_rate, ValueOr::Nearest).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        output_hwp.set_format(Format::s32()).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        output_hwp.set_access(alsa::pcm::Access::RWInterleaved).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        output_pcm.hw_params(&output_hwp).map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        output_pcm.prepare().map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        let output_hwp = HwParams::any(&output_pcm).map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        output_hwp.set_channels(2).map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        output_hwp.set_rate(config.sample_rate, ValueOr::Nearest).map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        output_hwp.set_format(Format::s32()).map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        output_hwp.set_access(alsa::pcm::Access::RWInterleaved).map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        output_pcm.hw_params(&output_hwp).map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        output_pcm.prepare().map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         
         println!("🔊 Output configured: {} Hz, 2 channels, S32", config.sample_rate);
         
@@ -158,8 +158,8 @@ impl AlsaAudioProcessor {
         println!("🎵 Starting ALSA audio processing loop...");
         
         // Get I/O interfaces
-        let input_io = input_pcm.io_i32().map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        let output_io = output_pcm.io_i32().map_err(|e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        let input_io = input_pcm.io_i32().map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        let output_io = output_pcm.io_i32().map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         
         let mut frames_processed = 0;
         while *is_running.read() {

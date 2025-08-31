@@ -1,5 +1,4 @@
 use rust_audio_processor::{AudioProcessor, AudioConfig, config::{StereoDelayConfig, DistortionConfig}};
-use rust_audio_processor::distortion::DistortionType;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🎸 Rust Audio Processor - Distortion Demo");
@@ -30,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     
     // Create audio processor
-    let mut processor = AudioProcessor::with_config(config)?;
+    let processor = AudioProcessor::with_config(config)?;
     
     println!("📋 Initial Configuration:");
     println!("  Sample rate: {} Hz", processor.get_config().sample_rate);

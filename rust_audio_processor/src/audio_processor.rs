@@ -199,7 +199,7 @@ impl AudioProcessor {
         }
         
         // Try to find input device based on configuration or fallback to USB detection
-        let input_device = if let Ok(mut devices) = host.input_devices() {
+        let input_device = if let Ok(devices) = host.input_devices() {
             // Collect all devices first to avoid enumeration issues
             let device_list: Vec<_> = devices.collect();
             println!("🔍 Found {} input devices to check", device_list.len());
