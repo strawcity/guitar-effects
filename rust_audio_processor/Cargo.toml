@@ -9,6 +9,9 @@ cpal = "0.15"
 ringbuf = "0.3"
 hound = "3.5"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+alsa = "0.9"
+
 # Math and utilities
 num-traits = "0.2"
 num-derive = "0.3"

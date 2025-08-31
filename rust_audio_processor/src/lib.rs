@@ -4,6 +4,7 @@
 //! specifically designed for stereo delay effects with cross-feedback distortion.
 
 pub mod audio_processor;
+pub mod alsa_processor;
 pub mod delay;
 pub mod distortion;
 pub mod config;

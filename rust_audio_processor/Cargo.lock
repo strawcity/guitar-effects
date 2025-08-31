@@ -841,6 +841,7 @@ dependencies = [
 name = "rust_audio_processor"
 version = "0.1.0"
 dependencies = [
+ "alsa",
  "anyhow",
  "atty",
  "cpal",

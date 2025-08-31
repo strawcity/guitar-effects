@@ -1,4 +1,6 @@
-use rust_audio_processor::{AudioProcessor, config::AudioConfig};
+use rust_audio_processor::{config::AudioConfig, audio_processor::AudioProcessor};
+#[cfg(target_os = "linux")]
+use rust_audio_processor::alsa_processor::AlsaAudioProcessor;
 use std::io::{self, Write};
 use std::env;
 
@@ -26,6 +28,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Output device: {:?}", config.output_device);
     
     // Create audio processor with loaded configuration
+    #[cfg(target_os = "linux")]
+    let mut processor = AlsaAudioProcessor::with_config(config)?;
+    #[cfg(not(target_os = "linux"))]
     let mut processor = AudioProcessor::with_config(config)?;
     
     // Test the audio processing
