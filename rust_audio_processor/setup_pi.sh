@@ -136,7 +136,7 @@ After=network.target sound.target
 Type=simple
 User=$USER
 WorkingDirectory=$(pwd)
-ExecStart=$(pwd)/target/release/rust_audio_processor
+ExecStart=$(pwd)/target/release/rust_audio_processor --daemon
 Restart=always
 RestartSec=3
 Environment=RUST_LOG=info

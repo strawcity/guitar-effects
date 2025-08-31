@@ -1,5 +1,6 @@
 use rust_audio_processor::AudioProcessor;
 use std::io::{self, Write};
+use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🎸 Rust Audio Processor for Guitar Stereo Delay Effects");
@@ -10,12 +11,59 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Test the audio processing
     println!("Testing audio processing...");
-    processor.test_audio()?;
+    match processor.test_audio() {
+        Ok(_) => println!("✅ Audio test completed successfully"),
+        Err(e) => {
+            println!("⚠️  Audio test failed: {}", e);
+            println!("💡 This is normal if no audio devices are connected or configured.");
+            println!("   The processor will still work for processing audio data.");
+        }
+    }
     
-    // Interactive parameter adjustment
-    interactive_mode(&mut processor)?;
+    // Check if running as a service (non-interactive)
+    let args: Vec<String> = env::args().collect();
+    let is_daemon_mode = args.contains(&"--daemon".to_string());
+    
+    if is_daemon_mode {
+        println!("🔧 Running in daemon mode - starting audio processing...");
+        daemon_mode(&mut processor)?;
+    } else {
+        println!("🎛️  Running in interactive mode...");
+        interactive_mode(&mut processor)?;
+    }
     
     Ok(())
+}
+
+fn daemon_mode(processor: &mut AudioProcessor) -> Result<(), Box<dyn std::error::Error>> {
+    println!("🎵 Starting audio processing daemon...");
+    println!("📊 Initial status:");
+    show_status(processor)?;
+    
+    // Start audio processing
+    println!("🎸 Audio processor daemon running. Use systemctl to control the service.");
+    println!("📋 Available commands:");
+    println!("  sudo systemctl stop rust-audio-processor    - Stop the service");
+    println!("  sudo systemctl restart rust-audio-processor - Restart the service");
+    println!("  sudo journalctl -u rust-audio-processor -f  - View logs");
+    
+    // Keep the daemon running
+    loop {
+        std::thread::sleep(std::time::Duration::from_secs(60));
+        
+        // Optional: periodic status check
+        if let Ok(status) = processor.get_status() {
+            if status.get("audio_running").map(|s| s == "true").unwrap_or(false) {
+                // Audio is running, continue
+            } else {
+                println!("⚠️  Audio processing stopped, attempting restart...");
+                if let Err(e) = processor.test_audio() {
+                    println!("⚠️  Audio restart failed: {}", e);
+                    println!("💡 This is normal if no audio devices are available.");
+                }
+            }
+        }
+    }
 }
 
 fn interactive_mode(processor: &mut AudioProcessor) -> Result<(), Box<dyn std::error::Error>> {

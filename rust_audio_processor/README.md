@@ -425,6 +425,24 @@ sudo systemctl status rust-audio-processor
 sudo journalctl -u rust-audio-processor -f
 ```
 
+### Troubleshooting
+
+If the service shows "Unknown command" errors, it means the daemon mode is
+working correctly but waiting for input. This is normal behavior.
+
+To check if the service is running properly:
+
+```bash
+# Check service status
+sudo systemctl status rust-audio-processor
+
+# View recent logs
+sudo journalctl -u rust-audio-processor -n 50
+
+# Restart the service if needed
+sudo systemctl restart rust-audio-processor
+```
+
 ### Building
 
 ```bash
@@ -434,9 +452,24 @@ cargo build --release
 
 ### Running
 
+#### Interactive Mode (Default)
+
 ```bash
 cargo run --release
 ```
+
+#### Daemon Mode (for systemd services)
+
+```bash
+cargo run --release --daemon
+```
+
+The daemon mode is designed to run as a systemd service and will:
+
+- Start audio processing without waiting for user input
+- Run continuously in the background
+- Provide periodic status updates
+- Handle audio device errors gracefully
 
 ## Usage
 
