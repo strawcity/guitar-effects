@@ -15,6 +15,15 @@ echo "🎤 Available input devices:"
 arecord -l
 
 echo ""
+echo "🔍 Checking Scarlett 2i2 supported formats..."
+echo "Supported output formats:"
+amixer -c 2 sget 'USB Audio' 2>/dev/null || echo "Could not get output format info"
+
+echo ""
+echo "Supported input formats:"
+amixer -c 2 sget 'USB Audio' 2>/dev/null || echo "Could not get input format info"
+
+echo ""
 echo "🔍 Checking PulseAudio status:"
 pulseaudio --check 2>/dev/null && echo "PulseAudio is running" || echo "PulseAudio is not running"
 
@@ -38,24 +47,20 @@ echo "📝 Creating ALSA configuration to bypass PulseAudio..."
 sudo tee /etc/asound.conf > /dev/null << 'EOF'
 # Direct ALSA configuration bypassing PulseAudio
 pcm.!default {
-    type hw
-    card 2
-    device 0
-}
-
-ctl.!default {
-    type hw
-    card 2
-}
-
-# Disable PulseAudio plugin
-pcm.!default {
     type plug
     slave.pcm {
         type hw
         card 2
         device 0
     }
+    slave.format S16_LE
+    slave.rate 48000
+    slave.channels 2
+}
+
+ctl.!default {
+    type hw
+    card 2
 }
 EOF
 
@@ -66,10 +71,10 @@ echo ""
 echo "🧪 Testing audio with simple commands..."
 
 echo "Testing output with speaker-test..."
-timeout 3s speaker-test -D hw:2,0 -c 2 -t sine -f 440 -l 1 2>/dev/null && echo "✅ Output test successful" || echo "❌ Output test failed"
+timeout 3s speaker-test -D default -c 2 -t sine -f 440 -l 1 2>/dev/null && echo "✅ Output test successful" || echo "❌ Output test failed"
 
 echo "Testing input with arecord..."
-timeout 3s arecord -D hw:2,0 -c 2 -f S16_LE -r 44100 -d 1 /tmp/test.wav 2>/dev/null && echo "✅ Input test successful" || echo "❌ Input test failed"
+timeout 3s arecord -D default -c 2 -f S16_LE -r 48000 -d 1 /tmp/test.wav 2>/dev/null && echo "✅ Input test successful" || echo "❌ Input test failed"
 
 echo ""
 echo "🎸 Now try running the Rust audio processor:"
