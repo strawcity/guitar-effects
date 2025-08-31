@@ -42,39 +42,51 @@ echo "🔧 Attempting to fix common issues..."
 echo "🛑 Stopping PulseAudio to avoid conflicts..."
 pulseaudio --kill 2>/dev/null || echo "PulseAudio was not running"
 
-# Create a simple ALSA configuration that bypasses PulseAudio
+# Create a proper ALSA configuration that bypasses PulseAudio
 echo "📝 Creating ALSA configuration to bypass PulseAudio..."
 sudo tee /etc/asound.conf > /dev/null << 'EOF'
-# Direct ALSA configuration bypassing PulseAudio
+# Direct ALSA configuration for Scarlett 2i2 USB
+# Remove any existing PulseAudio plugin interference
 pcm.!default {
-    type plug
-    slave.pcm {
-        type hw
-        card 2
-        device 0
-    }
-    slave.format S16_LE
-    slave.rate 48000
-    slave.channels 2
+    type hw
+    card 2
+    device 0
 }
 
 ctl.!default {
     type hw
     card 2
 }
+
+# Explicit input and output configurations
+pcm.!default_input {
+    type hw
+    card 2
+    device 0
+}
+
+pcm.!default_output {
+    type hw
+    card 2
+    device 0
+}
 EOF
 
 echo "✅ ALSA configuration updated"
+
+# Set proper permissions for audio devices
+echo "🔧 Setting audio device permissions..."
+sudo chmod 666 /dev/snd/* 2>/dev/null || echo "Could not set permissions"
 
 # Test audio with simple commands
 echo ""
 echo "🧪 Testing audio with simple commands..."
 
 echo "Testing output with speaker-test..."
-timeout 3s speaker-test -D default -c 2 -t sine -f 440 -l 1 2>/dev/null && echo "✅ Output test successful" || echo "❌ Output test failed"
+timeout 3s speaker-test -D hw:2,0 -c 2 -t sine -f 440 -l 1 2>/dev/null && echo "✅ Output test successful" || echo "❌ Output test failed"
 
 echo "Testing input with arecord..."
-timeout 3s arecord -D default -c 2 -f S16_LE -r 48000 -d 1 /tmp/test.wav 2>/dev/null && echo "✅ Input test successful" || echo "❌ Input test failed"
+timeout 3s arecord -D hw:2,0 -c 2 -f S16_LE -r 48000 -d 1 /tmp/test.wav 2>/dev/null && echo "✅ Input test successful" || echo "❌ Input test failed"
 
 echo ""
 echo "🎸 Now try running the Rust audio processor:"
@@ -86,3 +98,5 @@ echo "1. Reboot the Raspberry Pi"
 echo "2. Check that the Scarlett 2i2 is properly connected"
 echo "3. Try different USB ports"
 echo "4. Check dmesg for USB errors: dmesg | grep -i usb"
+echo "5. Try running with explicit device: cargo run --release -- --device hw:2,0"
+

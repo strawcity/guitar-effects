@@ -140,67 +140,77 @@ impl AudioProcessor {
         // List available devices for debugging
         println!("📋 Available input devices:");
         if let Ok(devices) = host.input_devices() {
-            for device in devices {
+            for (i, device) in devices.enumerate() {
                 if let Ok(name) = device.name() {
-                    println!("  - {}", name);
+                    println!("  [{}] {}", i, name);
                 }
             }
         }
         
         println!("📋 Available output devices:");
         if let Ok(devices) = host.output_devices() {
-            for device in devices {
+            for (i, device) in devices.enumerate() {
                 if let Ok(name) = device.name() {
-                    println!("  - {}", name);
+                    println!("  [{}] {}", i, name);
                 }
             }
         }
         
-        // Try to find Scarlett 2i2 specifically, fall back to default
+        // Try to find Scarlett 2i2 specifically with more flexible matching
         let input_device = if let Ok(mut devices) = host.input_devices() {
             devices.find(|device| {
-                device.name().map(|name| name.contains("USB") || name.contains("Scarlett")).unwrap_or(false)
-            }).or_else(|| host.default_input_device())
+                device.name().map(|name| {
+                    name.to_lowercase().contains("usb") || 
+                    name.to_lowercase().contains("scarlett") ||
+                    name.to_lowercase().contains("focusrite") ||
+                    name.to_lowercase().contains("2i2")
+                }).unwrap_or(false)
+            }).or_else(|| {
+                println!("⚠️  No USB audio input device found, trying default...");
+                host.default_input_device()
+            })
         } else {
+            println!("⚠️  Could not enumerate input devices, using default...");
             host.default_input_device()
-        }.ok_or_else(|| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        }.ok_or_else(|| {
+            println!("❌ No input device available");
+            AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable)
+        })?;
             
         let output_device = if let Ok(mut devices) = host.output_devices() {
             devices.find(|device| {
-                device.name().map(|name| name.contains("USB") || name.contains("Scarlett")).unwrap_or(false)
-            }).or_else(|| host.default_output_device())
-        } else {
-            host.default_output_device()
-        }.ok_or_else(|| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        
-        // Try to use Scarlett 2i2 for output to avoid PulseAudio conflicts
-        println!("🔍 Looking for Scarlett 2i2 output device...");
-        let scarlett_output = if let Ok(mut devices) = host.output_devices() {
-            devices.find(|device| {
-                device.name().map(|name| name.contains("USB") || name.contains("Scarlett")).unwrap_or(false)
+                device.name().map(|name| {
+                    name.to_lowercase().contains("usb") || 
+                    name.to_lowercase().contains("scarlett") ||
+                    name.to_lowercase().contains("focusrite") ||
+                    name.to_lowercase().contains("2i2")
+                }).unwrap_or(false)
+            }).or_else(|| {
+                println!("⚠️  No USB audio output device found, trying default...");
+                host.default_output_device()
             })
         } else {
-            None
-        };
-        
-        if let Some(device) = scarlett_output {
-            let device_name = device.name().unwrap_or_else(|_| "Unknown".to_string());
-            println!("✅ Found Scarlett 2i2 output: {}", device_name);
-            
-            // Use Scarlett for output to avoid PulseAudio timeout
-            return Self::run_audio_stream_with_device(_config, stereo_delay, is_running, input_device, device);
-        } else {
-            println!("⚠️  No Scarlett 2i2 output device found, using default output");
-        }
+            println!("⚠️  Could not enumerate output devices, using default...");
+            host.default_output_device()
+        }.ok_or_else(|| {
+            println!("❌ No output device available");
+            AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable)
+        })?;
         
         println!("🎤 Using input device: {}", input_device.name().unwrap_or_else(|_| "Unknown".to_string()));
         println!("🔊 Using output device: {}", output_device.name().unwrap_or_else(|_| "Unknown".to_string()));
         
         // Get supported configs and ensure format compatibility
         let input_config = input_device.default_input_config()
-            .map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+            .map_err(|e| {
+                println!("❌ Failed to get input config: {:?}", e);
+                AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable)
+            })?;
         let output_config = output_device.default_output_config()
-            .map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+            .map_err(|e| {
+                println!("❌ Failed to get output config: {:?}", e);
+                AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable)
+            })?;
         
         println!("🎤 Input config: {:?}", input_config);
         println!("🔊 Output config: {:?}", output_config);

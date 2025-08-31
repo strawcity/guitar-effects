@@ -6,6 +6,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🎸 Rust Audio Processor for Guitar Stereo Delay Effects");
     println!("=====================================================\n");
     
+    // Parse command line arguments
+    let args: Vec<String> = env::args().collect();
+    let is_daemon_mode = args.contains(&"--daemon".to_string());
+    let device_arg = args.iter().position(|arg| arg == "--device").map(|i| args.get(i + 1));
+    
+    // Show help if requested
+    if args.contains(&"--help".to_string()) || args.contains(&"-h".to_string()) {
+        show_cli_help();
+        return Ok(());
+    }
+    
     // Create audio processor with default configuration
     let mut processor = AudioProcessor::new()?;
     
@@ -20,10 +31,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     
-    // Check if running as a service (non-interactive)
-    let args: Vec<String> = env::args().collect();
-    let is_daemon_mode = args.contains(&"--daemon".to_string());
-    
     if is_daemon_mode {
         println!("🔧 Running in daemon mode - starting audio processing...");
         daemon_mode(&mut processor)?;
@@ -33,6 +40,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     
     Ok(())
+}
+
+fn show_cli_help() {
+    println!("🎸 Rust Audio Processor - Command Line Options");
+    println!("===============================================");
+    println!();
+    println!("Usage: cargo run --release [OPTIONS]");
+    println!();
+    println!("Options:");
+    println!("  --help, -h           Show this help message");
+    println!("  --daemon             Run in daemon mode (non-interactive)");
+    println!("  --device <device>    Specify audio device (e.g., hw:2,0)");
+    println!();
+    println!("Examples:");
+    println!("  cargo run --release                    # Interactive mode");
+    println!("  cargo run --release --daemon           # Daemon mode");
+    println!("  cargo run --release --device hw:2,0    # Use specific device");
+    println!();
+    println!("Interactive Commands:");
+    println!("  start               - Start real-time audio processing");
+    println!("  stop                - Stop real-time audio processing");
+    println!("  status              - Show current system status");
+    println!("  test                - Run audio test");
+    println!("  quit/exit           - Exit the program");
+    println!();
+    println!("Parameter Settings (format: parameter=value):");
+    println!("  left_delay=0.3      - Left channel delay time (seconds)");
+    println!("  right_delay=0.6     - Right channel delay time (seconds)");
+    println!("  feedback=0.3        - Feedback amount (0.0-0.9)");
+    println!("  wet_mix=0.6         - Wet signal mix (0.0-1.0)");
+    println!("  stereo_width=0.5    - Stereo width enhancement (0.0-1.0)");
+    println!("  cross_feedback=0.2  - Cross-feedback between channels (0.0-0.5)");
 }
 
 fn daemon_mode(processor: &mut AudioProcessor) -> Result<(), Box<dyn std::error::Error>> {
