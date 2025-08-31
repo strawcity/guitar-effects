@@ -141,6 +141,7 @@ impl AudioProcessor {
         is_running: Arc<RwLock<bool>>,
     ) -> Result<(), AudioProcessorError> {
         let host = cpal::default_host();
+        println!("🎵 Using audio host: {:?}", host.name());
         
         println!("🎵 Initializing audio streams...");
         
@@ -159,6 +160,19 @@ impl AudioProcessor {
             for (i, device) in devices.enumerate() {
                 if let Ok(name) = device.name() {
                     println!("  [{}] {}", i, name);
+                }
+            }
+        }
+        
+        // Also try to list all devices with more detail
+        println!("🔍 Detailed device enumeration:");
+        if let Ok(devices) = host.output_devices() {
+            for device in devices {
+                if let Ok(name) = device.name() {
+                    println!("  Device: '{}'", name);
+                    if let Ok(config) = device.default_output_config() {
+                        println!("    Config: {:?}", config);
+                    }
                 }
             }
         }
