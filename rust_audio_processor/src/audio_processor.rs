@@ -156,10 +156,21 @@ impl AudioProcessor {
             }
         }
         
-        // Get default devices
-        let input_device = host.default_input_device()
+        // Try to find Scarlett 2i2 specifically, fall back to default
+        let input_device = host.input_devices()
+            .unwrap_or_default()
+            .find(|device| {
+                device.name().map(|name| name.contains("USB") || name.contains("Scarlett")).unwrap_or(false)
+            })
+            .or_else(|| host.default_input_device())
             .ok_or_else(|| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        let output_device = host.default_output_device()
+            
+        let output_device = host.output_devices()
+            .unwrap_or_default()
+            .find(|device| {
+                device.name().map(|name| name.contains("USB") || name.contains("Scarlett")).unwrap_or(false)
+            })
+            .or_else(|| host.default_output_device())
             .ok_or_else(|| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         
         println!("🎤 Using input device: {}", input_device.name().unwrap_or_else(|_| "Unknown".to_string()));
@@ -171,8 +182,11 @@ impl AudioProcessor {
         let output_config = output_device.default_output_config()
             .map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         
-        // Create a simple buffer for audio data
-        let audio_buffer = Arc::new(Mutex::new(Vec::<f32>::new()));
+        println!("🎤 Input config: {:?}", input_config);
+        println!("🔊 Output config: {:?}", output_config);
+        
+        // Create a simple buffer for audio data with size limit
+        let audio_buffer = Arc::new(Mutex::new(Vec::<f32>::with_capacity(4096)));
         let audio_buffer_clone = Arc::clone(&audio_buffer);
         
         // Create input stream
@@ -182,11 +196,18 @@ impl AudioProcessor {
                 // Process input data and send to buffer
                 if let Ok(mut delay) = stereo_delay.lock() {
                     if let Ok(mut buffer) = audio_buffer_clone.lock() {
-                        for &input_sample in data {
-                            let (left_output, right_output) = delay.process_sample(input_sample, input_sample);
-                            // Mix to mono for now
-                            let output_sample = (left_output + right_output) * 0.5;
-                            buffer.push(output_sample);
+                        // Process stereo input (assuming interleaved LRLR...)
+                        for i in (0..data.len()).step_by(2) {
+                            let left_input = if i < data.len() { data[i] } else { 0.0 };
+                            let right_input = if i + 1 < data.len() { data[i + 1] } else { left_input };
+                            
+                            let (left_output, right_output) = delay.process_sample(left_input, right_input);
+                            
+                            // Keep stereo separation and limit buffer size
+                            if buffer.len() < 4096 {
+                                buffer.push(left_output);
+                                buffer.push(right_output);
+                            }
                         }
                     }
                 }
