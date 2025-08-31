@@ -1,8 +1,8 @@
 {
   "sample_rate": 48000,
   "buffer_size": 1024,
-  "input_device": "hw:CARD=USB,DEV=0",
-  "output_device": "hw:CARD=USB,DEV=0",
+  "input_device": "hw:2,0",
+  "output_device": "hw:2,0",
   "stereo_delay": {
     "left_delay": 0.3,
     "right_delay": 0.6,
