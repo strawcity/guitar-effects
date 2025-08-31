@@ -140,9 +140,16 @@ impl AudioProcessor {
         stereo_delay: Arc<Mutex<StereoDelay>>,
         is_running: Arc<RwLock<bool>>,
     ) -> Result<(), AudioProcessorError> {
+        // List available hosts to see what's available
+        println!("🎵 Available audio hosts:");
+        for host_id in cpal::available_hosts() {
+            println!("  - {:?}", host_id);
+        }
+        
+        // Use default host (will be ALSA on Linux if available)
         let host = cpal::default_host();
         
-        println!("🎵 Initializing audio streams...");
+        println!("🎵 Using ALSA host for direct hardware access...");
         
         // List available devices for debugging
         println!("📋 Available input devices:");
