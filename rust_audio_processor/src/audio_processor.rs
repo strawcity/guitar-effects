@@ -146,8 +146,20 @@ impl AudioProcessor {
             println!("  - {:?}", host_id);
         }
         
-        // Use default host (will be ALSA on Linux if available)
-        let host = cpal::default_host();
+        // Try to use ALSA host directly
+        let available_hosts = cpal::available_hosts();
+        let host = if let Some(alsa_host_id) = available_hosts.iter().find(|id| format!("{:?}", id).to_lowercase().contains("alsa")) {
+            if let Ok(alsa_host) = cpal::host_from_id(*alsa_host_id) {
+                println!("🎵 Using ALSA host for direct hardware access");
+                alsa_host
+            } else {
+                println!("⚠️  Could not use ALSA host, falling back to default");
+                cpal::default_host()
+            }
+        } else {
+            println!("⚠️  No ALSA host found, using default");
+            cpal::default_host()
+        };
         
         println!("🎵 Using ALSA host for direct hardware access...");
         
@@ -227,67 +239,43 @@ impl AudioProcessor {
             AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable)
         })?;
             
-        // Bypass the broken output device enumeration and directly use USB device
-        let output_device = if let Ok(mut devices) = host.output_devices() {
-            // Collect all devices first to avoid enumeration issues
-            let device_list: Vec<_> = devices.collect();
-            println!("🔍 Found {} output devices to check", device_list.len());
-            
-            // Print all device names for debugging
-            println!("📋 All output device names:");
-            for (i, device) in device_list.iter().enumerate() {
-                if let Ok(name) = device.name() {
-                    println!("  [{}] '{}'", i, name);
-                } else {
-                    println!("  [{}] <error getting name>", i);
-                }
-            }
-            
-            // Since the output device enumeration is broken, let's try to find USB devices
-            // by checking if any device name contains USB-related strings
+        // Try to find output device from detailed enumeration since main list is broken
+        let output_device = {
+            println!("🔍 Searching for USB output device in detailed enumeration...");
             let mut usb_device = None;
-            for device in &device_list {
-                if let Ok(name) = device.name() {
-                    let name_lower = name.to_lowercase();
-                    if name_lower.contains("usb") || 
-                       name_lower.contains("scarlett") ||
-                       name_lower.contains("focusrite") ||
-                       name_lower.contains("2i2") ||
-                       name_lower.contains("card=usb") ||
-                       name_lower.contains("hw:card=usb") ||
-                       name_lower.contains("plughw:card=usb") {
-                        println!("✅ Found USB output device: '{}'", name);
-                        usb_device = Some(device.clone());
-                        break;
+            
+            // Try to enumerate all devices and look for USB devices
+            if let Ok(devices) = host.output_devices() {
+                for device in devices {
+                    if let Ok(name) = device.name() {
+                        println!("🔍 Checking device: '{}'", name);
+                        let name_lower = name.to_lowercase();
+                        if name_lower.contains("usb") || 
+                           name_lower.contains("scarlett") ||
+                           name_lower.contains("focusrite") ||
+                           name_lower.contains("2i2") ||
+                           name_lower.contains("card=usb") ||
+                           name_lower.contains("hw:card=usb") ||
+                           name_lower.contains("plughw:card=usb") {
+                            println!("✅ Found USB output device: '{}'", name);
+                            usb_device = Some(device);
+                            break;
+                        }
                     }
                 }
             }
             
             // If we found a USB device, use it
             if let Some(device) = usb_device {
-                Some(device)
+                device
             } else {
-                // Try configured device first
-                if let Some(ref configured_device) = config.output_device {
-                    println!("🎯 Looking for configured output device: '{}'", configured_device);
-                    if let Some(device) = find_device_by_name(device_list.clone(), configured_device) {
-                        println!("✅ Found configured output device: '{}'", configured_device);
-                        Some(device)
-                    } else {
-                        println!("⚠️  Configured output device '{}' not found, falling back to default", configured_device);
-                        host.default_output_device()
-                    }
-                } else {
-                    host.default_output_device()
-                }
+                println!("⚠️  No USB output device found in enumeration, trying default...");
+                host.default_output_device().ok_or_else(|| {
+                    println!("❌ No default output device available");
+                    AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable)
+                })?
             }
-        } else {
-            println!("⚠️  Could not enumerate output devices, using default...");
-            host.default_output_device()
-        }.ok_or_else(|| {
-            println!("❌ No output device available");
-            AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable)
-        })?;
+        };
         
         println!("🎤 Using input device: {}", input_device.name().unwrap_or_else(|_| "Unknown".to_string()));
         println!("🔊 Using output device: {}", output_device.name().unwrap_or_else(|_| "Unknown".to_string()));
