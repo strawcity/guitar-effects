@@ -173,10 +173,27 @@ impl AudioProcessor {
             host.default_output_device()
         }.ok_or_else(|| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         
+        // If input and output devices are different, try to use the same device for both
+        if input_device.name().unwrap_or_default() != output_device.name().unwrap_or_default() {
+            println!("⚠️  Different input/output devices detected. Trying to use same device for both...");
+            let same_device = if let Ok(mut devices) = host.output_devices() {
+                devices.find(|device| {
+                    device.name().map(|name| name.contains("USB") || name.contains("Scarlett")).unwrap_or(false)
+                })
+            } else {
+                None
+            };
+            
+            if let Some(device) = same_device {
+                println!("✅ Using same device for input and output: {}", device.name().unwrap_or_else(|_| "Unknown".to_string()));
+                return Self::run_audio_stream_with_device(_config, stereo_delay, is_running, device.clone(), device);
+            }
+        }
+        
         println!("🎤 Using input device: {}", input_device.name().unwrap_or_else(|_| "Unknown".to_string()));
         println!("🔊 Using output device: {}", output_device.name().unwrap_or_else(|_| "Unknown".to_string()));
         
-        // Get supported configs
+        // Get supported configs and ensure format compatibility
         let input_config = input_device.default_input_config()
             .map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         let output_config = output_device.default_output_config()
@@ -184,6 +201,163 @@ impl AudioProcessor {
         
         println!("🎤 Input config: {:?}", input_config);
         println!("🔊 Output config: {:?}", output_config);
+        
+        // Check if formats are compatible, if not, try to find compatible configs
+        let input_config = if input_config.sample_format() != output_config.sample_format() {
+            println!("⚠️  Format mismatch detected. Looking for compatible config...");
+            
+            // Try to find a config with F32 format for input
+            if let Ok(configs) = input_device.supported_input_configs() {
+                if let Some(compatible_config) = configs
+                    .filter(|config| config.sample_format() == cpal::SampleFormat::F32)
+                    .next()
+                {
+                    println!("✅ Found compatible F32 input config: {:?}", compatible_config);
+                    compatible_config.with_sample_rate(cpal::SampleRate(44100))
+                } else {
+                    println!("⚠️  No F32 input config found, using default");
+                    input_config
+                }
+            } else {
+                println!("⚠️  Could not get input configs, using default");
+                input_config
+            }
+        } else {
+            input_config
+        };
+        
+        // Create a simple buffer for audio data with size limit
+        let audio_buffer = Arc::new(Mutex::new(Vec::<f32>::with_capacity(4096)));
+        let audio_buffer_clone = Arc::clone(&audio_buffer);
+        
+        // Create input stream
+        let input_stream = input_device.build_input_stream(
+            &input_config.into(),
+            move |data: &[f32], _: &cpal::InputCallbackInfo| {
+                // Process input data and send to buffer
+                if let Ok(mut delay) = stereo_delay.lock() {
+                    if let Ok(mut buffer) = audio_buffer_clone.lock() {
+                        // Process stereo input (assuming interleaved LRLR...)
+                        for i in (0..data.len()).step_by(2) {
+                            let left_input = if i < data.len() { data[i] } else { 0.0 };
+                            let right_input = if i + 1 < data.len() { data[i + 1] } else { left_input };
+                            
+                            let (left_output, right_output) = delay.process_sample(left_input, right_input);
+                            
+                            // Keep stereo separation and limit buffer size
+                            if buffer.len() < 4096 {
+                                buffer.push(left_output);
+                                buffer.push(right_output);
+                            }
+                        }
+                    }
+                }
+            },
+            move |err| {
+                eprintln!("Audio input error: {}", err);
+            },
+            None,
+        ).map_err(AudioProcessorError::AudioDevice)?;
+        
+        // Create output stream
+        let output_stream = output_device.build_output_stream(
+            &output_config.into(),
+            move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+                // Fill output buffer with processed audio from buffer
+                if let Ok(mut buffer) = audio_buffer.lock() {
+                    for sample in data.iter_mut() {
+                        if let Some(processed_sample) = buffer.pop() {
+                            *sample = processed_sample;
+                        } else {
+                            *sample = 0.0; // Silence if no data available
+                        }
+                    }
+                }
+            },
+            move |err| {
+                eprintln!("Audio output error: {}", err);
+            },
+            None,
+        ).map_err(AudioProcessorError::AudioDevice)?;
+        
+        // Start both streams
+        input_stream.play().map_err(AudioProcessorError::AudioStream)?;
+        output_stream.play().map_err(AudioProcessorError::AudioStream)?;
+        
+        println!("🎵 Audio streams started - input and output are now active!");
+        
+        // Keep the streams alive while running
+        while *is_running.read() {
+            thread::sleep(Duration::from_millis(100));
+        }
+        
+        Ok(())
+    }
+    
+    /// Run the audio stream with the same device for input and output
+    fn run_audio_stream_with_device(
+        _config: AudioConfig,
+        stereo_delay: Arc<Mutex<StereoDelay>>,
+        is_running: Arc<RwLock<bool>>,
+        input_device: cpal::Device,
+        output_device: cpal::Device,
+    ) -> Result<(), AudioProcessorError> {
+        println!("🎵 Initializing audio streams with same device...");
+        
+        // List available devices for debugging
+        println!("📋 Available input devices:");
+        if let Ok(devices) = cpal::default_host().input_devices() {
+            for device in devices {
+                if let Ok(name) = device.name() {
+                    println!("  - {}", name);
+                }
+            }
+        }
+        
+        println!("📋 Available output devices:");
+        if let Ok(devices) = cpal::default_host().output_devices() {
+            for device in devices {
+                if let Ok(name) = device.name() {
+                    println!("  - {}", name);
+                }
+            }
+        }
+        
+        println!("🎤 Using input device: {}", input_device.name().unwrap_or_else(|_| "Unknown".to_string()));
+        println!("🔊 Using output device: {}", output_device.name().unwrap_or_else(|_| "Unknown".to_string()));
+        
+        // Get supported configs and ensure format compatibility
+        let input_config = input_device.default_input_config()
+            .map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        let output_config = output_device.default_output_config()
+            .map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
+        
+        println!("🎤 Input config: {:?}", input_config);
+        println!("🔊 Output config: {:?}", output_config);
+        
+        // Check if formats are compatible, if not, try to find compatible configs
+        let input_config = if input_config.sample_format() != output_config.sample_format() {
+            println!("⚠️  Format mismatch detected. Looking for compatible config...");
+            
+            // Try to find a config with F32 format for input
+            if let Ok(configs) = input_device.supported_input_configs() {
+                if let Some(compatible_config) = configs
+                    .filter(|config| config.sample_format() == cpal::SampleFormat::F32)
+                    .next()
+                {
+                    println!("✅ Found compatible F32 input config: {:?}", compatible_config);
+                    compatible_config.with_sample_rate(cpal::SampleRate(44100))
+                } else {
+                    println!("⚠️  No F32 input config found, using default");
+                    input_config
+                }
+            } else {
+                println!("⚠️  Could not get input configs, using default");
+                input_config
+            }
+        } else {
+            input_config
+        };
         
         // Create a simple buffer for audio data with size limit
         let audio_buffer = Arc::new(Mutex::new(Vec::<f32>::with_capacity(4096)));
