@@ -71,6 +71,10 @@ impl AudioProcessorTrait for alsa_processor::AlsaAudioProcessor {
     fn set_stereo_delay_parameter(&self, param: &str, value: f32) -> std::result::Result<(), AudioProcessorError> {
         self.set_stereo_delay_parameter(param, value)
     }
+    
+    fn set_distortion_type(&self, distortion_type: &str) -> std::result::Result<(), AudioProcessorError> {
+        self.set_distortion_type(distortion_type)
+    }
 }
 
 // Re-export commonly used types

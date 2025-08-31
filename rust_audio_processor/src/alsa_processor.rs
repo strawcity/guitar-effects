@@ -221,6 +221,11 @@ impl AlsaAudioProcessor {
             "ping_pong" => delay.set_stereo_parameters(Some(value > 0.5), None, None),
             "stereo_width" => delay.set_stereo_parameters(None, Some(value), None),
             "cross_feedback" => delay.set_stereo_parameters(None, None, Some(value)),
+            // Distortion parameters
+            "distortion_enabled" => delay.set_cross_feedback_distortion(Some(value > 0.5), None, None, None, None),
+            "distortion_drive" => delay.set_cross_feedback_distortion(None, None, Some(value), None, None),
+            "distortion_mix" => delay.set_cross_feedback_distortion(None, None, None, Some(value), None),
+            "distortion_feedback_intensity" => delay.set_cross_feedback_distortion(None, None, None, None, Some(value)),
             _ => {
                 return Err(AudioProcessorError::InvalidParameter {
                     param: param.to_string(),
@@ -230,6 +235,18 @@ impl AlsaAudioProcessor {
                 });
             }
         }
+        
+        Ok(())
+    }
+    
+    /// Set distortion type (string parameter)
+    pub fn set_distortion_type(&self, distortion_type: &str) -> Result<(), AudioProcessorError> {
+        let mut delay = self.stereo_delay.lock().map_err(|_| {
+            AudioProcessorError::Threading("Failed to acquire stereo delay lock".to_string())
+        })?;
+        
+        let dist_type = DistortionType::from(distortion_type);
+        delay.set_cross_feedback_distortion(None, Some(dist_type), None, None, None);
         
         Ok(())
     }

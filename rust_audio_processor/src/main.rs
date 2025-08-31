@@ -173,6 +173,13 @@ fn interactive_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<d
                         Ok(_) => println!("✅ Set {} to {:.3}", param, value),
                         Err(e) => println!("❌ Error: {}", e),
                     }
+                } else if input.starts_with("distortion_type=") {
+                    // Handle distortion type command
+                    let distortion_type = input.strip_prefix("distortion_type=").unwrap_or("");
+                    match processor.set_distortion_type(distortion_type) {
+                        Ok(_) => println!("✅ Set distortion type to {}", distortion_type),
+                        Err(e) => println!("❌ Error: {}", e),
+                    }
                 } else {
                     println!("❓ Unknown command. Type 'help' for available commands.");
                 }
@@ -198,6 +205,14 @@ fn show_help() {
     println!("  wet_mix=0.6             - Wet signal mix (0.0-1.0)");
     println!("  stereo_width=0.5        - Stereo width enhancement (0.0-1.0)");
     println!("  cross_feedback=0.2      - Cross-feedback between channels (0.0-0.5)");
+    println!("\n🎸 Distortion Commands:");
+    println!("  distortion_type=soft_clip    - Set distortion type");
+    println!("  distortion_enabled=1        - Enable/disable distortion (0/1)");
+    println!("  distortion_drive=0.5        - Distortion drive amount (0.0-1.0)");
+    println!("  distortion_mix=0.7          - Distortion wet/dry mix (0.0-1.0)");
+    println!("  distortion_feedback_intensity=0.3 - How much distortion affects feedback (0.0-1.0)");
+    println!("\n🎛️  Available Distortion Types:");
+    println!("  soft_clip, hard_clip, tube, fuzz, bit_crush, waveshaper");
     println!("\nExample: feedback=0.5");
 }
 
