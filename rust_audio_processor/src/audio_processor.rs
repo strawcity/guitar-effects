@@ -161,6 +161,7 @@ impl AudioProcessor {
             devices.find(|device| {
                 device.name().map(|name| {
                     let name_lower = name.to_lowercase();
+                    println!("🔍 Checking input device: '{}'", name);
                     name_lower.contains("usb") || 
                     name_lower.contains("scarlett") ||
                     name_lower.contains("focusrite") ||
@@ -184,6 +185,7 @@ impl AudioProcessor {
             devices.find(|device| {
                 device.name().map(|name| {
                     let name_lower = name.to_lowercase();
+                    println!("🔍 Checking output device: '{}'", name);
                     name_lower.contains("usb") || 
                     name_lower.contains("scarlett") ||
                     name_lower.contains("focusrite") ||
