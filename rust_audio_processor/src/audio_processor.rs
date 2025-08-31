@@ -202,62 +202,72 @@ impl AudioProcessor {
         println!("🎤 Input config: {:?}", input_config);
         println!("🔊 Output config: {:?}", output_config);
         
-        // Check if formats are compatible, if not, try to find compatible configs
-        let input_config = if input_config.sample_format() != output_config.sample_format() {
-            println!("⚠️  Format mismatch detected. Looking for compatible config...");
-            
-            // Try to find a config with F32 format for input
-            if let Ok(configs) = input_device.supported_input_configs() {
-                if let Some(compatible_config) = configs
-                    .filter(|config| config.sample_format() == cpal::SampleFormat::F32)
-                    .next()
-                {
-                    println!("✅ Found compatible F32 input config: {:?}", compatible_config);
-                    compatible_config.with_sample_rate(cpal::SampleRate(44100))
-                } else {
-                    println!("⚠️  No F32 input config found, using default");
-                    input_config
-                }
-            } else {
-                println!("⚠️  Could not get input configs, using default");
-                input_config
-            }
-        } else {
-            input_config
-        };
-        
         // Create a simple buffer for audio data with size limit
         let audio_buffer = Arc::new(Mutex::new(Vec::<f32>::with_capacity(4096)));
         let audio_buffer_clone = Arc::clone(&audio_buffer);
         
-        // Create input stream
-        let input_stream = input_device.build_input_stream(
-            &input_config.into(),
-            move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                // Process input data and send to buffer
-                if let Ok(mut delay) = stereo_delay.lock() {
-                    if let Ok(mut buffer) = audio_buffer_clone.lock() {
-                        // Process stereo input (assuming interleaved LRLR...)
-                        for i in (0..data.len()).step_by(2) {
-                            let left_input = if i < data.len() { data[i] } else { 0.0 };
-                            let right_input = if i + 1 < data.len() { data[i + 1] } else { left_input };
-                            
-                            let (left_output, right_output) = delay.process_sample(left_input, right_input);
-                            
-                            // Keep stereo separation and limit buffer size
-                            if buffer.len() < 4096 {
-                                buffer.push(left_output);
-                                buffer.push(right_output);
+        // Create input stream with format conversion if needed
+        let input_stream = if input_config.sample_format() == cpal::SampleFormat::I32 {
+            println!("🔄 Converting I32 input to F32 for processing...");
+            // Handle I32 input format
+            input_device.build_input_stream(
+                &input_config.into(),
+                move |data: &[i32], _: &cpal::InputCallbackInfo| {
+                    // Convert I32 to F32 and process
+                    if let Ok(mut delay) = stereo_delay.lock() {
+                        if let Ok(mut buffer) = audio_buffer_clone.lock() {
+                            // Process stereo input (assuming interleaved LRLR...)
+                            for i in (0..data.len()).step_by(2) {
+                                let left_input = if i < data.len() { data[i] as f32 / i32::MAX as f32 } else { 0.0 };
+                                let right_input = if i + 1 < data.len() { data[i + 1] as f32 / i32::MAX as f32 } else { left_input };
+                                
+                                let (left_output, right_output) = delay.process_sample(left_input, right_input);
+                                
+                                // Keep stereo separation and limit buffer size
+                                if buffer.len() < 4096 {
+                                    buffer.push(left_output);
+                                    buffer.push(right_output);
+                                }
                             }
                         }
                     }
-                }
-            },
-            move |err| {
-                eprintln!("Audio input error: {}", err);
-            },
-            None,
-        ).map_err(AudioProcessorError::AudioDevice)?;
+                },
+                move |err| {
+                    eprintln!("Audio input error: {}", err);
+                },
+                None,
+            ).map_err(AudioProcessorError::AudioDevice)?
+        } else {
+            println!("✅ Using F32 input format directly...");
+            // Handle F32 input format
+            input_device.build_input_stream(
+                &input_config.into(),
+                move |data: &[f32], _: &cpal::InputCallbackInfo| {
+                    // Process input data and send to buffer
+                    if let Ok(mut delay) = stereo_delay.lock() {
+                        if let Ok(mut buffer) = audio_buffer_clone.lock() {
+                            // Process stereo input (assuming interleaved LRLR...)
+                            for i in (0..data.len()).step_by(2) {
+                                let left_input = if i < data.len() { data[i] } else { 0.0 };
+                                let right_input = if i + 1 < data.len() { data[i + 1] } else { left_input };
+                                
+                                let (left_output, right_output) = delay.process_sample(left_input, right_input);
+                                
+                                // Keep stereo separation and limit buffer size
+                                if buffer.len() < 4096 {
+                                    buffer.push(left_output);
+                                    buffer.push(right_output);
+                                }
+                            }
+                        }
+                    }
+                },
+                move |err| {
+                    eprintln!("Audio input error: {}", err);
+                },
+                None,
+            ).map_err(AudioProcessorError::AudioDevice)?
+        };
         
         // Create output stream
         let output_stream = output_device.build_output_stream(
@@ -335,62 +345,72 @@ impl AudioProcessor {
         println!("🎤 Input config: {:?}", input_config);
         println!("🔊 Output config: {:?}", output_config);
         
-        // Check if formats are compatible, if not, try to find compatible configs
-        let input_config = if input_config.sample_format() != output_config.sample_format() {
-            println!("⚠️  Format mismatch detected. Looking for compatible config...");
-            
-            // Try to find a config with F32 format for input
-            if let Ok(configs) = input_device.supported_input_configs() {
-                if let Some(compatible_config) = configs
-                    .filter(|config| config.sample_format() == cpal::SampleFormat::F32)
-                    .next()
-                {
-                    println!("✅ Found compatible F32 input config: {:?}", compatible_config);
-                    compatible_config.with_sample_rate(cpal::SampleRate(44100))
-                } else {
-                    println!("⚠️  No F32 input config found, using default");
-                    input_config
-                }
-            } else {
-                println!("⚠️  Could not get input configs, using default");
-                input_config
-            }
-        } else {
-            input_config
-        };
-        
         // Create a simple buffer for audio data with size limit
         let audio_buffer = Arc::new(Mutex::new(Vec::<f32>::with_capacity(4096)));
         let audio_buffer_clone = Arc::clone(&audio_buffer);
         
-        // Create input stream
-        let input_stream = input_device.build_input_stream(
-            &input_config.into(),
-            move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                // Process input data and send to buffer
-                if let Ok(mut delay) = stereo_delay.lock() {
-                    if let Ok(mut buffer) = audio_buffer_clone.lock() {
-                        // Process stereo input (assuming interleaved LRLR...)
-                        for i in (0..data.len()).step_by(2) {
-                            let left_input = if i < data.len() { data[i] } else { 0.0 };
-                            let right_input = if i + 1 < data.len() { data[i + 1] } else { left_input };
-                            
-                            let (left_output, right_output) = delay.process_sample(left_input, right_input);
-                            
-                            // Keep stereo separation and limit buffer size
-                            if buffer.len() < 4096 {
-                                buffer.push(left_output);
-                                buffer.push(right_output);
+        // Create input stream with format conversion if needed
+        let input_stream = if input_config.sample_format() == cpal::SampleFormat::I32 {
+            println!("🔄 Converting I32 input to F32 for processing...");
+            // Handle I32 input format
+            input_device.build_input_stream(
+                &input_config.into(),
+                move |data: &[i32], _: &cpal::InputCallbackInfo| {
+                    // Convert I32 to F32 and process
+                    if let Ok(mut delay) = stereo_delay.lock() {
+                        if let Ok(mut buffer) = audio_buffer_clone.lock() {
+                            // Process stereo input (assuming interleaved LRLR...)
+                            for i in (0..data.len()).step_by(2) {
+                                let left_input = if i < data.len() { data[i] as f32 / i32::MAX as f32 } else { 0.0 };
+                                let right_input = if i + 1 < data.len() { data[i + 1] as f32 / i32::MAX as f32 } else { left_input };
+                                
+                                let (left_output, right_output) = delay.process_sample(left_input, right_input);
+                                
+                                // Keep stereo separation and limit buffer size
+                                if buffer.len() < 4096 {
+                                    buffer.push(left_output);
+                                    buffer.push(right_output);
+                                }
                             }
                         }
                     }
-                }
-            },
-            move |err| {
-                eprintln!("Audio input error: {}", err);
-            },
-            None,
-        ).map_err(AudioProcessorError::AudioDevice)?;
+                },
+                move |err| {
+                    eprintln!("Audio input error: {}", err);
+                },
+                None,
+            ).map_err(AudioProcessorError::AudioDevice)?
+        } else {
+            println!("✅ Using F32 input format directly...");
+            // Handle F32 input format
+            input_device.build_input_stream(
+                &input_config.into(),
+                move |data: &[f32], _: &cpal::InputCallbackInfo| {
+                    // Process input data and send to buffer
+                    if let Ok(mut delay) = stereo_delay.lock() {
+                        if let Ok(mut buffer) = audio_buffer_clone.lock() {
+                            // Process stereo input (assuming interleaved LRLR...)
+                            for i in (0..data.len()).step_by(2) {
+                                let left_input = if i < data.len() { data[i] } else { 0.0 };
+                                let right_input = if i + 1 < data.len() { data[i + 1] } else { left_input };
+                                
+                                let (left_output, right_output) = delay.process_sample(left_input, right_input);
+                                
+                                // Keep stereo separation and limit buffer size
+                                if buffer.len() < 4096 {
+                                    buffer.push(left_output);
+                                    buffer.push(right_output);
+                                }
+                            }
+                        }
+                    }
+                },
+                move |err| {
+                    eprintln!("Audio input error: {}", err);
+                },
+                None,
+            ).map_err(AudioProcessorError::AudioDevice)?
+        };
         
         // Create output stream
         let output_stream = output_device.build_output_stream(
