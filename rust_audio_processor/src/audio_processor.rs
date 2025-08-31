@@ -173,21 +173,24 @@ impl AudioProcessor {
             host.default_output_device()
         }.ok_or_else(|| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         
-        // If input and output devices are different, try to use the same device for both
-        if input_device.name().unwrap_or_default() != output_device.name().unwrap_or_default() {
-            println!("⚠️  Different input/output devices detected. Trying to use same device for both...");
-            let same_device = if let Ok(mut devices) = host.output_devices() {
-                devices.find(|device| {
-                    device.name().map(|name| name.contains("USB") || name.contains("Scarlett")).unwrap_or(false)
-                })
-            } else {
-                None
-            };
+        // Try to use Scarlett 2i2 for output to avoid PulseAudio conflicts
+        println!("🔍 Looking for Scarlett 2i2 output device...");
+        let scarlett_output = if let Ok(mut devices) = host.output_devices() {
+            devices.find(|device| {
+                device.name().map(|name| name.contains("USB") || name.contains("Scarlett")).unwrap_or(false)
+            })
+        } else {
+            None
+        };
+        
+        if let Some(device) = scarlett_output {
+            let device_name = device.name().unwrap_or_else(|_| "Unknown".to_string());
+            println!("✅ Found Scarlett 2i2 output: {}", device_name);
             
-            if let Some(device) = same_device {
-                println!("✅ Using same device for input and output: {}", device.name().unwrap_or_else(|_| "Unknown".to_string()));
-                return Self::run_audio_stream_with_device(_config, stereo_delay, is_running, device.clone(), device);
-            }
+            // Use Scarlett for output to avoid PulseAudio timeout
+            return Self::run_audio_stream_with_device(_config, stereo_delay, is_running, input_device, device);
+        } else {
+            println!("⚠️  No Scarlett 2i2 output device found, using default output");
         }
         
         println!("🎤 Using input device: {}", input_device.name().unwrap_or_else(|_| "Unknown".to_string()));
