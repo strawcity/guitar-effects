@@ -141,7 +141,6 @@ impl AudioProcessor {
         is_running: Arc<RwLock<bool>>,
     ) -> Result<(), AudioProcessorError> {
         let host = cpal::default_host();
-        println!("🎵 Using audio host: {:?}", host.name());
         
         println!("🎵 Initializing audio streams...");
         
