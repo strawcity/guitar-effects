@@ -135,35 +135,60 @@ impl AudioProcessor {
     ) -> Result<(), AudioProcessorError> {
         let host = cpal::default_host();
         
+        println!("🎵 Initializing audio streams...");
+        
+        // List available devices for debugging
+        println!("📋 Available input devices:");
+        if let Ok(devices) = host.input_devices() {
+            for device in devices {
+                if let Ok(name) = device.name() {
+                    println!("  - {}", name);
+                }
+            }
+        }
+        
+        println!("📋 Available output devices:");
+        if let Ok(devices) = host.output_devices() {
+            for device in devices {
+                if let Ok(name) = device.name() {
+                    println!("  - {}", name);
+                }
+            }
+        }
+        
         // Get default devices
         let input_device = host.default_input_device()
             .ok_or_else(|| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         let output_device = host.default_output_device()
             .ok_or_else(|| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         
+        println!("🎤 Using input device: {}", input_device.name().unwrap_or_else(|_| "Unknown".to_string()));
+        println!("🔊 Using output device: {}", output_device.name().unwrap_or_else(|_| "Unknown".to_string()));
+        
         // Get supported configs
         let input_config = input_device.default_input_config()
             .map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
-        let _output_config = output_device.default_output_config()
+        let output_config = output_device.default_output_config()
             .map_err(|_e| AudioProcessorError::AudioDevice(cpal::BuildStreamError::DeviceNotAvailable))?;
         
-        // Create audio stream
-        let stream = input_device.build_input_stream(
+        // Create a simple buffer for audio data
+        let audio_buffer = Arc::new(Mutex::new(Vec::<f32>::new()));
+        let audio_buffer_clone = Arc::clone(&audio_buffer);
+        
+        // Create input stream
+        let input_stream = input_device.build_input_stream(
             &input_config.into(),
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                // Process input data
+                // Process input data and send to buffer
                 if let Ok(mut delay) = stereo_delay.lock() {
-                    let mut output_buffer = Vec::with_capacity(data.len());
-                    
-                    for &input_sample in data {
-                        let (left_output, right_output) = delay.process_sample(input_sample, input_sample);
-                        // Mix to mono for now
-                        output_buffer.push((left_output + right_output) * 0.5);
+                    if let Ok(mut buffer) = audio_buffer_clone.lock() {
+                        for &input_sample in data {
+                            let (left_output, right_output) = delay.process_sample(input_sample, input_sample);
+                            // Mix to mono for now
+                            let output_sample = (left_output + right_output) * 0.5;
+                            buffer.push(output_sample);
+                        }
                     }
-                    
-                    // Here you would send the output_buffer to the output device
-                    // For now, we'll just drop it
-                    drop(output_buffer);
                 }
             },
             move |err| {
@@ -172,10 +197,34 @@ impl AudioProcessor {
             None,
         ).map_err(AudioProcessorError::AudioDevice)?;
         
-        // Start the stream
-        stream.play().map_err(AudioProcessorError::AudioStream)?;
+        // Create output stream
+        let output_stream = output_device.build_output_stream(
+            &output_config.into(),
+            move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+                // Fill output buffer with processed audio from buffer
+                if let Ok(mut buffer) = audio_buffer.lock() {
+                    for sample in data.iter_mut() {
+                        if let Some(processed_sample) = buffer.pop() {
+                            *sample = processed_sample;
+                        } else {
+                            *sample = 0.0; // Silence if no data available
+                        }
+                    }
+                }
+            },
+            move |err| {
+                eprintln!("Audio output error: {}", err);
+            },
+            None,
+        ).map_err(AudioProcessorError::AudioDevice)?;
         
-        // Keep the stream alive while running
+        // Start both streams
+        input_stream.play().map_err(AudioProcessorError::AudioStream)?;
+        output_stream.play().map_err(AudioProcessorError::AudioStream)?;
+        
+        println!("🎵 Audio streams started - input and output are now active!");
+        
+        // Keep the streams alive while running
         while *is_running.read() {
             thread::sleep(Duration::from_millis(100));
         }

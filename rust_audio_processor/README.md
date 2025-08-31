@@ -466,10 +466,11 @@ cargo run --release --daemon
 
 The daemon mode is designed to run as a systemd service and will:
 
-- Start audio processing without waiting for user input
+- Start real-time audio processing automatically
 - Run continuously in the background
 - Provide periodic status updates
 - Handle audio device errors gracefully
+- Automatically restart audio processing if it stops
 
 ## Usage
 
@@ -554,6 +555,8 @@ Type 'help' for available commands, 'quit' to exit
   help                    - Show this help message
   status                  - Show current system status
   test                    - Run audio test
+  start                   - Start real-time audio processing
+  stop                    - Stop real-time audio processing
   quit/exit               - Exit the program
 
 🎛️  Parameter Settings (format: parameter=value):

@@ -40,7 +40,20 @@ fn daemon_mode(processor: &mut AudioProcessor) -> Result<(), Box<dyn std::error:
     println!("📊 Initial status:");
     show_status(processor)?;
     
-    // Start audio processing
+    // Start real-time audio processing
+    println!("🎸 Starting real-time audio processing...");
+    match processor.start_audio() {
+        Ok(_) => {
+            println!("✅ Real-time audio processing started successfully!");
+            println!("🎵 Audio is now running and processing input from your audio device.");
+        }
+        Err(e) => {
+            println!("⚠️  Failed to start real-time audio processing: {}", e);
+            println!("💡 This is normal if no audio devices are connected or configured.");
+            println!("   The processor will still work for processing audio data.");
+        }
+    }
+    
     println!("🎸 Audio processor daemon running. Use systemctl to control the service.");
     println!("📋 Available commands:");
     println!("  sudo systemctl stop rust-audio-processor    - Stop the service");
@@ -57,9 +70,11 @@ fn daemon_mode(processor: &mut AudioProcessor) -> Result<(), Box<dyn std::error:
                 // Audio is running, continue
             } else {
                 println!("⚠️  Audio processing stopped, attempting restart...");
-                if let Err(e) = processor.test_audio() {
+                if let Err(e) = processor.start_audio() {
                     println!("⚠️  Audio restart failed: {}", e);
                     println!("💡 This is normal if no audio devices are available.");
+                } else {
+                    println!("✅ Audio processing restarted successfully!");
                 }
             }
         }
@@ -86,6 +101,20 @@ fn interactive_mode(processor: &mut AudioProcessor) -> Result<(), Box<dyn std::e
                 println!("Running audio test...");
                 processor.test_audio()?;
             }
+            "start" => {
+                println!("Starting real-time audio processing...");
+                match processor.start_audio() {
+                    Ok(_) => println!("✅ Real-time audio processing started!"),
+                    Err(e) => println!("❌ Error: {}", e),
+                }
+            }
+            "stop" => {
+                println!("Stopping real-time audio processing...");
+                match processor.stop_audio() {
+                    Ok(_) => println!("✅ Real-time audio processing stopped!"),
+                    Err(e) => println!("❌ Error: {}", e),
+                }
+            }
             _ => {
                 if let Some((param, value)) = parse_parameter(input) {
                     match processor.set_stereo_delay_parameter(param, value) {
@@ -107,6 +136,8 @@ fn show_help() {
     println!("  help                    - Show this help message");
     println!("  status                  - Show current system status");
     println!("  test                    - Run audio test");
+    println!("  start                   - Start real-time audio processing");
+    println!("  stop                    - Stop real-time audio processing");
     println!("  quit/exit               - Exit the program");
     println!("\n🎛️  Parameter Settings (format: parameter=value):");
     println!("  left_delay=0.3          - Left channel delay time (seconds)");
