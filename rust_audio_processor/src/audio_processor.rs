@@ -190,16 +190,30 @@ impl AudioProcessor {
             let device_list: Vec<_> = devices.collect();
             println!("🔍 Found {} output devices to check", device_list.len());
             
+            // Print all device names for debugging
+            println!("📋 All output device names:");
+            for (i, device) in device_list.iter().enumerate() {
+                if let Ok(name) = device.name() {
+                    println!("  [{}] '{}'", i, name);
+                } else {
+                    println!("  [{}] <error getting name>", i);
+                }
+            }
+            
             device_list.into_iter().find(|device| {
                 device.name().map(|name| {
                     let name_lower = name.to_lowercase();
                     println!("🔍 Checking output device: '{}'", name);
-                    name_lower.contains("usb") || 
-                    name_lower.contains("scarlett") ||
-                    name_lower.contains("focusrite") ||
-                    name_lower.contains("2i2") ||
-                    name_lower.contains("card=usb") ||
-                    name_lower.contains("hw:card=usb")
+                    let matches = name_lower.contains("usb") || 
+                        name_lower.contains("scarlett") ||
+                        name_lower.contains("focusrite") ||
+                        name_lower.contains("2i2") ||
+                        name_lower.contains("card=usb") ||
+                        name_lower.contains("hw:card=usb");
+                    if matches {
+                        println!("✅ Found matching output device: '{}'", name);
+                    }
+                    matches
                 }).unwrap_or(false)
             }).or_else(|| {
                 println!("⚠️  No USB audio output device found, trying default...");
