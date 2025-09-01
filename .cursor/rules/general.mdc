@@ -1,5 +1,14 @@
 ---
-description:
+description: General Guitar Effects rules
 globs:
 alwaysApply: true
 ---
+
+# Basic heirarchy
+
+- /documentation/README.md is the source of truth. No changes can be made to
+  this file unless given permission
+- Code should be written to match what is in /documentation/README.md
+- The code should always reflect what is in the /documentation folder
+- All new code should preserve all functionality described in the /documentation
+  folder
