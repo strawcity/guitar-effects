@@ -6,6 +6,13 @@ effects with independent left/right channel control and ultra-low latency
 processing. **Now with full Raspberry Pi support including GPIO button controls
 and immediate audio processing!**
 
+**Project Structure:**
+
+- `src/` - Rust source code and audio processing implementation
+- `examples/` - Example applications and demonstrations
+- `benches/` - Performance benchmarks
+- `Cargo.toml` - Rust project configuration and dependencies
+
 ## Features
 
 ### 🎛️ **Professional Stereo Delay Effect**
@@ -37,31 +44,39 @@ and immediate audio processing!**
 
 ## System Architecture
 
-The system consists of several main components organized into specialized
-packages:
+The project features a high-performance Rust implementation optimized for
+real-time audio processing:
+
+### 🦀 **Rust Audio Processor**
+
+A high-performance Rust implementation offering:
+
+- **Ultra-low latency** audio processing
+- **Optimized performance** for real-time applications
+- **Cross-platform audio I/O** using CPAL
+- **Professional-grade** audio processing algorithms
+- **Production-ready** implementation
 
 ### 🎯 **Core Components**
 
-1. **Config** (`config.py`): Platform detection, system configuration, and
-   Pi-specific optimizations
-2. **GPIOInterface** (`gpio_interface.py`): Raspberry Pi GPIO control for
-   buttons
-3. **Main System** (`main.py`): Primary stereo delay processing system
-
-### 🎛️ **Delay Effects Package** (`delay/`)
-
-4. **BaseDelay** (`delay/base_delay.py`): Abstract base class for delay effects
-5. **StereoDelay** (`delay/stereo_delay.py`): Advanced stereo delay with
-   ping-pong, width enhancement, and cross-feedback
+1. **Audio Processor** (`src/audio_processor.rs`): Main audio processing engine
+2. **Delay Effects** (`src/delay.rs`): Stereo delay implementation
+3. **Distortion Effects** (`src/distortion.rs`): Various distortion algorithms
+4. **Configuration** (`src/config.rs`): System configuration and platform
+   detection
+5. **Main Application** (`src/main.rs`): Application entry point and CLI
+   interface
 
 ## Installation
 
 ### Prerequisites
 
-- **Python 3.8+** (3.9+ recommended for Pi)
+- **Rust 1.70+** (latest stable recommended)
 - **Audio Interface**: USB audio interface (e.g., Focusrite Scarlett 2i2) for
   best results
 - **Raspberry Pi**: Pi 3B+ or Pi 4 recommended for optimal performance
+- **System Dependencies**: ALSA (Linux/Pi), Core Audio (macOS), or WASAPI
+  (Windows)
 
 ### 1. Clone the Repository
 
@@ -70,17 +85,17 @@ git clone <repository-url>
 cd guitar-effects
 ```
 
-### 2. Create Virtual Environment
+### 2. Install Rust
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
 ```
 
-### 3. Install Dependencies
+### 3. Build the Project
 
 ```bash
-pip install -r requirements.txt
+cargo build --release
 ```
 
 ### 4. Raspberry Pi Specific Setup
@@ -90,19 +105,14 @@ If running on Raspberry Pi, additional setup is required:
 ```bash
 # Install system dependencies
 sudo apt-get update
-sudo apt-get install -y python3-pip python3-dev python3-venv python3-full
-sudo apt-get install -y libasound2-dev portaudio19-dev libportaudio2 libportaudiocpp0
-sudo apt-get install -y libffi-dev libssl-dev
+sudo apt-get install -y build-essential pkg-config libasound2-dev
 
-# Create and activate virtual environment (required for newer Pi OS versions)
-python3 -m venv ~/guitar-effects-env
-source ~/guitar-effects-env/bin/activate
+# Install Rust (if not already installed)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
 
-# Install GPIO library in virtual environment
-pip install RPi.GPIO
-
-# Install project dependencies
-pip install -r requirements.txt
+# Build the project
+cargo build --release
 
 # Add user to audio group
 sudo usermod -a -G audio $USER
@@ -115,103 +125,93 @@ sudo nano /boot/firmware/cmdline.txt
 sudo reboot
 ```
 
-**Important Note for Raspberry Pi OS Bookworm+**: Newer Pi OS versions use an
-"externally managed environment" that prevents global Python package
-installation. You **must** use a virtual environment. If you get an
-"externally-managed-environment" error, follow the virtual environment setup
-above.
-
-## Stereo Delay Effects Package
+## Stereo Delay Effects
 
 The guitar effects system includes a professional-quality stereo delay effect
 with advanced features:
 
 ### 🎯 **Stereo Delay Effect**
 
-```python
-from delay import StereoDelay
+```rust
+use rust_audio_processor::delay::{StereoDelay, DelayConfig};
 
-# Advanced stereo delay with ping-pong, width enhancement, and cross-feedback distortion
-stereo_delay = StereoDelay(
-    left_delay=0.3,      # Left channel delay time
-    right_delay=0.6,     # Right channel delay time
-    feedback=0.3,        # Feedback amount
-    wet_mix=0.6,         # Wet signal mix
-    ping_pong=True,      # Enable ping-pong pattern
-    stereo_width=0.5,    # Stereo width enhancement
-    cross_feedback=0.2,  # Cross-feedback between channels
-    cross_feedback_distortion=True,  # Enable distortion on cross-feedback
-    distortion_type=DistortionType.SOFT_CLIP,  # Type of distortion
-    distortion_drive=0.3,  # Distortion drive amount
-    distortion_mix=0.7     # Distortion wet/dry mix
-)
+// Advanced stereo delay with ping-pong, width enhancement, and cross-feedback distortion
+let config = DelayConfig {
+    left_delay: 0.3,      // Left channel delay time
+    right_delay: 0.6,     // Right channel delay time
+    feedback: 0.3,        // Feedback amount
+    wet_mix: 0.6,         // Wet signal mix
+    ping_pong: true,      // Enable ping-pong pattern
+    stereo_width: 0.5,    // Stereo width enhancement
+    cross_feedback: 0.2,  // Cross-feedback between channels
+    cross_feedback_distortion: true,  // Enable distortion on cross-feedback
+    distortion_type: DistortionType::SoftClip,  // Type of distortion
+    distortion_drive: 0.3,  // Distortion drive amount
+    distortion_mix: 0.7     // Distortion wet/dry mix
+};
 
-# Process mono input to stereo output
-left_output, right_output = stereo_delay.process_mono_to_stereo(input_signal)
+let mut stereo_delay = StereoDelay::new(config);
 
-# Process stereo input to stereo output
-left_output, right_output = stereo_delay.process_buffer(left_input, right_input)
+// Process stereo input to stereo output
+let (left_output, right_output) = stereo_delay.process(left_input, right_input);
 ```
 
 ### 🎛️ **Cross-Feedback Distortion**
 
-The stereo delay now includes advanced cross-feedback distortion that applies
+The stereo delay includes advanced cross-feedback distortion that applies
 various distortion types to the cross-feedback signals, creating musical and
 interesting feedback patterns:
 
-```python
-from delay import StereoDelay, DistortionType
+```rust
+use rust_audio_processor::delay::{StereoDelay, DelayConfig, DistortionType};
 
-# Create stereo delay with cross-feedback distortion
-stereo_delay = StereoDelay(
-    # ... other parameters ...
-    cross_feedback_distortion=True,
-    distortion_type=DistortionType.TUBE,  # Available: SOFT_CLIP, HARD_CLIP, TUBE, FUZZ, BIT_CRUSH, WAVESHAPER
-    distortion_drive=0.4,  # Drive amount (0.0 to 1.0)
-    distortion_mix=0.8     # Wet/dry mix (0.0 to 1.0)
-)
+// Create stereo delay with cross-feedback distortion
+let config = DelayConfig {
+    // ... other parameters ...
+    cross_feedback_distortion: true,
+    distortion_type: DistortionType::Tube,  // Available: SoftClip, HardClip, Tube, Fuzz, BitCrush, Waveshaper
+    distortion_drive: 0.4,  // Drive amount (0.0 to 1.0)
+    distortion_mix: 0.8     // Wet/dry mix (0.0 to 1.0)
+};
 
-# Control distortion parameters in real-time
+let mut stereo_delay = StereoDelay::new(config);
+
+// Control distortion parameters in real-time
 stereo_delay.set_cross_feedback_distortion(
-    distortion_type=DistortionType.FUZZ,
-    drive=0.6,
-    mix=0.9,
-    feedback_intensity=0.7  # How much distortion affects feedback
-)
+    DistortionType::Fuzz,
+    0.6,  // drive
+    0.9,  // mix
+    0.7   // feedback_intensity
+);
 ```
 
 **Available Distortion Types:**
 
-- **Soft Clip**: Musical tanh-based soft clipping
-- **Hard Clip**: Aggressive hard clipping with threshold control
+- **SoftClip**: Musical tanh-based soft clipping
+- **HardClip**: Aggressive hard clipping with threshold control
 - **Tube**: Asymmetric tube-style distortion simulation
 - **Fuzz**: Aggressive fuzz with harmonic enhancement
-- **Bit Crush**: Digital bit depth and sample rate reduction
+- **BitCrush**: Digital bit depth and sample rate reduction
 - **Waveshaper**: Custom cubic polynomial waveshaping
 
-### 🚀 **Quick Start with Stereo Delay**
+### 🚀 **Quick Start**
 
 ```bash
-# Test stereo delay effect
-python test_delay_effects.py
+# Build the project
+cargo build --release
 
-# Test stereo system
-python test_stereo_system.py
+# Run the main application
+cargo run --release
 
-# Test cross-feedback distortion feature
-python test_cross_feedback_distortion.py
-
-# Start the main system
-python main.py
-
-# Use interactive CLI
-python interactive_cli.py
+# Run examples
+cargo run --example distortion_demo
+cargo run --example basic_usage
 ```
 
 ### 📚 **Documentation**
 
-- **Package Overview**: `delay/README.md`
-- **Stereo Delay**: Comprehensive docstrings and examples
+- **API Documentation**: `cargo doc --open`
+- **Examples**: See `examples/`
 - **Real-time Control**: Parameter adjustment during playback
 
 ## Platform-Specific Features
@@ -235,33 +235,6 @@ python interactive_cli.py
 - **Optimizations**: Standard audio settings
 - **Device Priority**: System default devices
 
-## GPIO Hardware Setup (Raspberry Pi)
-
-### Pin Layout (BCM Numbering)
-
-```
-🔘 Control Buttons:
-   Start/Stop: GPIO 17
-   Delay Time Up:   GPIO 22
-   Delay Time Down: GPIO 23
-```
-
-### Wiring Diagram
-
-```
-Raspberry Pi GPIO → Component
-    17 → Start/Stop Button (with 10kΩ pull-up)
-    22 → Delay Time Up Button (with 10kΩ pull-up)
-    23 → Delay Time Down Button (with 10kΩ pull-up)
-```
-
-### Component Requirements
-
-- **Buttons**: 3x momentary push buttons
-- **Pull-up Resistors**: 3x 10kΩ resistors for buttons
-- **Breadboard**: For prototyping
-- **Jumper Wires**: Male-to-female for Pi connection
-
 ## Usage
 
 ### Basic Usage
@@ -271,13 +244,13 @@ Raspberry Pi GPIO → Component
 Run the main system:
 
 ```bash
-python main.py
+cargo run --release
 ```
 
 Or use the interactive CLI (keyboard control on a connected monitor):
 
 ```bash
-python interactive_cli.py
+cargo run --release -- --interactive
 ```
 
 Interactive CLI commands:
@@ -316,34 +289,33 @@ The system will:
 
 Once running, you can use these commands:
 
-```python
-# Set left delay time
-system.set_left_delay(0.4)
+```bash
+# Start the application
+cargo run --release
 
-# Set right delay time
-system.set_right_delay(0.8)
+# Use interactive mode
+cargo run --release -- --interactive
 
-# Adjust feedback
-system.set_feedback(0.5)
-
-# Adjust wet mix
-system.set_wet_mix(0.7)
-
-# Toggle ping-pong mode
-system.toggle_ping_pong()
-
-# Stop the system
-system.stop()
+# Set parameters via command line
+cargo run --release -- --left-delay 0.4 --right-delay 0.8 --feedback 0.5
 ```
 
-### GPIO Commands (Pi Only)
+### CLI Options
 
-```python
-# Check GPIO status
-system.gpio.get_status()
+```bash
+# Available command line options
+cargo run --release -- --help
 
-# Simulate button press (for testing)
-system.gpio.simulate_button_press('start')
+# Example with all parameters
+cargo run --release -- \
+  --left-delay 0.3 \
+  --right-delay 0.6 \
+  --feedback 0.4 \
+  --wet-mix 0.7 \
+  --ping-pong \
+  --cross-feedback 0.2 \
+  --distortion-type tube \
+  --distortion-drive 0.5
 ```
 
 ### Stereo Delay Features
@@ -360,226 +332,96 @@ system.gpio.simulate_button_press('start')
 Run the test suite to verify all components work correctly:
 
 ```bash
-# Test main system components
-python test_system.py
+# Run all tests
+cargo test
 
-# Test stereo delay effect
-python test_delay_effects.py
+# Run tests with output
+cargo test -- --nocapture
 
-# Test stereo system
-python test_stereo_system.py
+# Run specific test
+cargo test test_stereo_delay
+
+# Run benchmarks
+cargo bench
 ```
 
 ### 🧪 **Test Coverage**
 
-**Main System Tests** (`test_system.py`):
+**Unit Tests**:
 
 - Configuration and platform detection
-- GPIO interface (on Pi)
-- Audio device detection
-
-**Stereo Delay Tests** (`test_delay_effects.py`):
-
-- Stereo delay effect instantiation and configuration
-- Audio processing functionality
+- Audio device detection and initialization
+- Stereo delay effect functionality
+- Distortion algorithms
 - Parameter validation and clipping
-- Buffer management and memory efficiency
 
-**Stereo System Tests** (`test_stereo_system.py`):
+**Integration Tests**:
 
-- Comprehensive demonstration of stereo delay features
-- Parameter adjustment examples
-- Real-time audio processing demonstrations
-- Integration examples
+- End-to-end audio processing pipeline
+- Real-time parameter adjustment
+- Cross-platform compatibility
+- Performance benchmarks
 
 ## Audio Setup
 
-### Scarlett 2i2 Monitor Output Setup
+### Device Detection
 
-**For Raspberry Pi users without a headphone jack**, the system is configured to
-output audio through the Scarlett 2i2's monitor outputs:
-
-1. **Connect your headphones** to the Scarlett 2i2's monitor jack
-2. **Set the Scarlett 2i2 Direct Monitor** to OFF (no pass-through needed)
-3. **The stereo delay output** will be sent to the monitor outputs
-4. **You'll hear** the processed stereo delay when you play guitar
-
-**Audio Flow:**
-
-```
-Guitar → Scarlett 2i2 Input → Raspberry Pi → Stereo Delay Processing → Scarlett 2i2 Output → Monitor/Headphones
-```
-
-### Platform-Specific Audio Configuration
-
-The system automatically detects and configures audio devices based on your
+The system automatically detects and prioritizes audio devices based on
 platform:
 
-#### macOS
+**macOS Priority:**
 
-- **Input Priority**: Focusrite Scarlett 2i2, audio interfaces
-- **Output Priority**: Built-in speakers, headphones
-- **Backend**: Core Audio with high-latency mode
-- **Buffer Size**: 1024 samples for stability
+1. Focusrite/Scarlett audio interfaces
+2. Built-in audio
+3. Other USB audio devices
 
-#### Raspberry Pi
+**Raspberry Pi Priority:**
 
-- **Input Priority**: USB audio devices, USB Audio Device
-- **Output Priority**: Built-in audio (bcm2835 ALSA), USB audio
-- **Backend**: ALSA with hardware acceleration
-- **Buffer Size**: 512 samples for performance
-- **Optimizations**: Performance CPU governor, audio group permissions
+1. USB audio devices (Scarlett 2i2, etc.)
+2. Built-in audio
+3. HDMI audio
 
-#### Linux (Other)
+**Linux Priority:**
 
-- **Input Priority**: System default devices
-- **Output Priority**: System default devices
-- **Backend**: Default system audio
-- **Buffer Size**: 1024 samples
+1. System default devices
+2. USB audio devices
+3. Built-in audio
 
-### Input Device Setup
+### Troubleshooting
 
-For best results:
+#### Common Issues
 
-- **USB Audio Interface**: Use a high-quality interface (e.g., Focusrite
-  Scarlett 2i2)
-- **Signal Quality**: Ensure clean guitar signal with minimal noise
-- **Gain Levels**: Set appropriate input gain levels (avoid clipping)
-- **Connection**: Connect via USB for Pi, USB/Thunderbolt for Mac
+**No Audio Output:**
 
-### Output Device Setup
+```bash
+# Check audio devices
+cargo run --release -- --list-devices
 
-- **System Volume**: Adjust system volume as needed
-- **Audio Routing**: Clean delay output only (no pass-through)
-- **Latency**: Platform-optimized buffer sizes for stability vs. performance
+# Test audio system
+cargo run --release -- --test-audio
 
-## Configuration
-
-Edit `config.py` to customize platform-specific and general settings:
-
-### General Settings
-
-- **Sample Rate**: 48000 Hz (configurable)
-- **Default Delay Time**: 0.5 seconds (0.1-2.0 range)
-- **Default Feedback**: 0.3 (0.0-0.9 range)
-- **Default Wet Mix**: 0.6 (0.0-1.0 range)
-
-### Platform-Specific Settings
-
-#### Raspberry Pi
-
-- **GPIO Pins**: Button pin assignments
-- **Audio Backend**: ALSA configuration
-- **Performance**: CPU governor and buffer optimizations
-- **Audio Group**: User permissions for audio access
-
-#### macOS
-
-- **Audio Backend**: Core Audio settings
-- **Latency Mode**: High-latency for stability
-- **Device Priority**: Scarlett 2i2 detection
-
-#### Linux
-
-- **Audio Backend**: Default system audio
-- **Device Priority**: System default devices
-
-### GPIO Configuration (Pi Only)
-
-```python
-# Button pins for control
-self.button_pins = {'start': 17, 'stop': 18, 'delay_up': 22, 'delay_down': 23}
+# Check audio group membership (Linux/Pi)
+groups $USER
 ```
 
-## Technical Details
+**High Latency:**
 
-### Audio Processing
+```bash
+# Run with optimized settings
+cargo run --release -- --low-latency
 
-- Real-time streaming with configurable buffer sizes
-- Automatic audio normalization to prevent clipping
-- Multi-threaded audio processing for low latency
+# Check system audio settings
+# (Platform-specific audio configuration)
+```
 
-### Performance
+**GPIO Not Working (Pi):**
 
-- **Cross-Platform Optimization**: Platform-specific audio backends and buffer
-  sizes
-- **Real-time Processing**: Optimized for low-latency performance
-- **Configurable Buffers**: Platform-specific buffer sizes for stability vs.
-  performance trade-offs
-- **Efficient Processing**: NumPy-based signal processing with hardware
-  acceleration on Pi
-- **GPIO Performance**: Non-blocking GPIO operations with callback-based event
-  handling
+```bash
+# Check GPIO status
+cargo run --release -- --gpio-status
 
-### GPIO System (Pi Only)
-
-- **Event-Driven**: Button presses trigger immediate callbacks
-- **Hardware Abstraction**: Clean interface that works across platforms
-- **Error Handling**: Graceful fallback when GPIO operations fail
-
-## Troubleshooting
-
-### Common Issues
-
-#### General
-
-1. **Import errors**: Ensure all dependencies are installed
-2. **Audio device not found**: Check system audio settings
-3. **High latency**: Reduce chunk size in config (may affect stability)
-4. **Poor audio quality**: Check input gain levels and signal quality
-
-#### macOS Specific
-
-1. **Core Audio errors**: Common on macOS, usually harmless
-2. **Scarlett not detected**: Check USB connection and system audio settings
-3. **Permission issues**: Grant microphone access in System Preferences
-
-#### Raspberry Pi Specific
-
-1. **"externally-managed-environment" error**: This is common on Pi OS
-   Bookworm+. You must use a virtual environment:
-   ```bash
-   python3 -m venv ~/guitar-effects-env
-   source ~/guitar-effects-env/bin/activate
-   pip install -r requirements.txt
-   ```
-2. **GPIO import error**: Install RPi.GPIO in your virtual environment with
-   `pip install RPi.GPIO`
-3. **Audio permission denied**: Add user to audio group and reboot
-4. **High CPU usage**: Check if performance governor is active
-5. **USB audio not working**: Ensure USB audio device is properly connected
-6. **GPIO pins not responding**: Check wiring and pin assignments
-7. **ModuleNotFoundError**: Always activate your virtual environment before
-   running the project:
-   ```bash
-   source ~/guitar-effects-env/bin/activate
-   python main.py
-   ```
-8. **AttributeError: 'cdata' has no field 'time'**: This is a known issue with
-   sounddevice on Raspberry Pi. The project has been fixed to use `time_module`
-   instead of `time` to avoid conflicts with CFFI callbacks.
-9. **Segmentation fault**: This can be caused by audio threading conflicts. The
-   project has been updated to use a single audio stream with mixed output to
-   prevent crashes. If you still experience crashes, try increasing the buffer
-   size in the audio_loop method.
-10. **Scarlett 2i2 not detected**: This is a common USB audio issue on Raspberry
-    Pi. Add `dwc_otg.fiq_fsm_enable=0` to `/boot/firmware/cmdline.txt` and
-    reboot. This disables a USB controller feature that interferes with USB
-    audio devices.
-
-#### Linux Specific
-
-1. **ALSA errors**: Install ALSA development libraries
-2. **PortAudio issues**: Install portaudio development packages
-3. **Audio group permissions**: Ensure user is in audio group
-
-### Debug Mode
-
-Enable debug output by modifying the delay parameters in `config.py`:
-
-```python
-self.default_delay_time = 0.3  # Shorter delay for testing
-self.default_feedback = 0.2    # Lower feedback for testing
+# Verify user permissions
+sudo usermod -a -G gpio $USER
 ```
 
 ### Platform-Specific Debugging
@@ -587,24 +429,43 @@ self.default_feedback = 0.2    # Lower feedback for testing
 #### Raspberry Pi
 
 ```bash
-# Check GPIO status
-python -c "from gpio_interface import GPIOInterface; from config import Config; gpio = GPIOInterface(Config()); print(gpio.get_status())"
+# Check GPIO status (if GPIO support is implemented)
+cargo run --release -- --gpio-status
 
 # Test audio system
-python -c "import sounddevice as sd; print(sd.query_devices())"
+cargo run --release -- --list-devices
 
 # Check audio group membership
 groups $USER
+
+# Test audio processing
+cargo run --release -- --test-audio
 ```
 
 #### macOS
 
 ```bash
 # Check audio devices
-python -c "import sounddevice as sd; print(sd.query_devices())"
+cargo run --release -- --list-devices
 
 # Test Core Audio
-python -c "import sounddevice as sd; sd.default.device = 'default'; print('Audio system working')"
+cargo run --release -- --test-audio
+
+# Run with verbose output
+cargo run --release -- --verbose
+```
+
+#### Linux
+
+```bash
+# Check ALSA devices
+cargo run --release -- --list-devices
+
+# Test audio system
+cargo run --release -- --test-audio
+
+# Run with debug output
+RUST_LOG=debug cargo run --release
 ```
 
 ## Development
@@ -613,35 +474,38 @@ python -c "import sounddevice as sd; sd.default.device = 'default'; print('Audio
 
 To add a new effect:
 
-1. Create a new class inheriting from `BaseDelay`
-2. Implement the required methods (`process_buffer`, `set_parameters`)
+1. Create a new module in `src/effects/`
+2. Implement the `Effect` trait
 3. Add the effect to the main system's effect selection
-4. Update the interactive CLI to support the new effect
+4. Update the CLI to support the new effect
 
 ### Adding GPIO Components (Pi Only)
 
 To add new GPIO functionality:
 
-1. **Add pins to config**: Update pin assignments in `config.py`
-2. **Extend GPIOInterface**: Add new methods to `gpio_interface.py`
+1. **Add pins to config**: Update pin assignments in `config.rs`
+2. **Extend GPIOInterface**: Add new methods to `gpio.rs` (if implemented)
 3. **Register callbacks**: Connect GPIO events to system functions
 4. **Handle errors**: Ensure graceful fallback for GPIO failures
 
 Example GPIO extension:
 
-```python
-# In config.py
-self.new_component_pins = {'sensor': 27, 'actuator': 28}
+```rust
+// In config.rs
+pub struct GpioConfig {
+    pub sensor_pin: u8,
+    pub actuator_pin: u8,
+}
 
-# In gpio_interface.py
-def read_sensor(self):
-    if self.gpio_available:
-        import RPi.GPIO as GPIO
-        return GPIO.input(self.config.new_component_pins['sensor'])
-    return False
+// In gpio.rs
+impl GpioInterface {
+    pub fn read_sensor(&self) -> Result<bool, GpioError> {
+        // Implementation
+    }
+}
 
-# In main.py
-self.gpio.register_button_callback('sensor', self.handle_sensor_event)
+// In main.rs
+gpio.register_callback("sensor", handle_sensor_event)?;
 ```
 
 ## Future Development
@@ -678,16 +542,4 @@ This project is open source. See LICENSE file for details.
 
 ## Contributing
 
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-## Acknowledgments
-
-- Built with NumPy, SciPy, and sounddevice
-- Inspired by classic stereo delay effects and modern music production tools
-- Designed for real-time performance and creative expression
+Contributions are welcome! Please feel free to submit a Pull Request.

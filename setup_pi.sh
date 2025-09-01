@@ -1,68 +1,168 @@
 #!/bin/bash
 
-# Raspberry Pi Setup Script for Guitar Effects
-# This script automates the setup process for Raspberry Pi
+# Raspberry Pi Setup Script for Rust Audio Processor with Scarlett 2i2
+# Run this script on your Raspberry Pi
 
-echo "🎸 Setting up Guitar Effects on Raspberry Pi..."
-echo "=================================================="
+set -e
+
+echo "🎸 Setting up Rust Audio Processor for Raspberry Pi with Scarlett 2i2"
+echo "================================================================"
 
 # Check if running on Raspberry Pi
-if ! grep -q "Raspberry Pi" /sys/firmware/devicetree/base/model 2>/dev/null; then
-    echo "❌ This script is designed for Raspberry Pi only!"
+if ! grep -q "Raspberry Pi" /proc/cpuinfo; then
+    echo "⚠️  Warning: This script is designed for Raspberry Pi"
+    read -p "Continue anyway? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+fi
+
+# Update system
+echo "📦 Updating system packages..."
+sudo apt update
+sudo apt upgrade -y
+
+# Install Rust
+echo "🦀 Installing Rust..."
+if ! command -v rustc &> /dev/null; then
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source ~/.cargo/env
+else
+    echo "✅ Rust already installed"
+fi
+
+# Install system dependencies
+echo "📚 Installing system dependencies..."
+sudo apt install -y \
+    build-essential \
+    pkg-config \
+    libasound2-dev \
+    libssl-dev \
+    libudev-dev \
+    libdbus-1-dev \
+    libavahi-client-dev \
+    libjack-jackd2-dev \
+    libpulse-dev \
+    libsndfile1-dev \
+    libsamplerate0-dev \
+    libfftw3-dev \
+    cmake \
+    git \
+    alsa-utils \
+    htop
+
+# Check for Scarlett 2i2
+echo "🎛️  Checking for Scarlett 2i2..."
+if lsusb | grep -q "Focusrite"; then
+    echo "✅ Focusrite Scarlett 2i2 detected"
+else
+    echo "⚠️  Scarlett 2i2 not detected. Please connect it and run this script again."
+    echo "   Or continue if you're using a different audio interface."
+    read -p "Continue? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+fi
+
+# Configure ALSA for Scarlett 2i2
+echo "🔧 Configuring ALSA..."
+if [ -f /etc/asound.conf ]; then
+    echo "⚠️  /etc/asound.conf already exists. Backing up..."
+    sudo cp /etc/asound.conf /etc/asound.conf.backup
+fi
+
+# Create ALSA configuration
+sudo tee /etc/asound.conf > /dev/null << 'EOF'
+# Default ALSA configuration for Scarlett 2i2
+pcm.!default {
+    type hw
+    card 2
+    device 0
+}
+
+ctl.!default {
+    type hw
+    card 2
+}
+EOF
+
+echo "📝 ALSA configuration created. You may need to adjust the card number."
+echo "   Run 'aplay -l' to see available audio cards."
+
+# Add user to audio group
+echo "👤 Adding user to audio group..."
+sudo usermod -a -G audio $USER
+
+# Set performance governor
+echo "⚡ Setting CPU performance governor..."
+echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+
+# Test audio setup
+echo "🎵 Testing audio setup..."
+echo "   This will play a test tone. Press Ctrl+C to stop."
+
+# Check if we can play audio
+if command -v speaker-test &> /dev/null; then
+    echo "🔊 Playing test tone..."
+    speaker-test -D plughw:2,0 -c 2 -t sine -f 440 -l 1 || {
+        echo "⚠️  Audio test failed. You may need to adjust the card number in /etc/asound.conf"
+        echo "   Run 'aplay -l' to see available cards"
+    }
+else
+    echo "⚠️  speaker-test not available. Skipping audio test."
+fi
+
+# Build the project
+echo "🔨 Building Rust Audio Processor..."
+if [ -d "src" ]; then
+    echo "✅ Source code found. Building..."
+    cargo build --release
+else
+    echo "⚠️  Source code not found in current directory."
+    echo "   Please run this script from the rust_audio_processor directory."
     exit 1
 fi
 
-echo "✅ Detected Raspberry Pi"
+# Create systemd service
+echo "🔧 Creating systemd service..."
+sudo tee /etc/systemd/system/rust-audio-processor.service > /dev/null << EOF
+[Unit]
+Description=Rust Audio Processor for Guitar Effects
+After=network.target sound.target
 
-# Update system packages
-echo "📦 Updating system packages..."
-sudo apt-get update
-sudo apt-get upgrade -y
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$(pwd)
+ExecStart=$(pwd)/target/release/rust_audio_processor --daemon
+Restart=always
+RestartSec=3
+Environment=RUST_LOG=info
 
-# Install system dependencies
-echo "🔧 Installing system dependencies..."
-sudo apt-get install -y python3-pip python3-dev python3-venv
-sudo apt-get install -y libasound2-dev portaudio19-dev libportaudio2 libportaudiocpp0
-sudo apt-get install -y libffi-dev libssl-dev git
+# Audio group permissions
+SupplementaryGroups=audio
 
-# Install GPIO library
-echo "🔌 Installing GPIO library..."
-pip3 install RPi.GPIO
+# Performance settings
+Nice=-10
+IOSchedulingClass=realtime
 
-# Add user to audio group
-echo "🎵 Adding user to audio group..."
-sudo usermod -a -G audio $USER
+[Install]
+WantedBy=multi-user.target
+EOF
 
-# Set audio permissions
-echo "🔊 Setting audio permissions..."
-sudo chmod 666 /dev/snd/* 2>/dev/null || true
+# Enable service
+echo "🚀 Enabling systemd service..."
+sudo systemctl daemon-reload
+sudo systemctl enable rust-audio-processor
 
-# Set CPU governor to performance for better audio performance
-echo "⚡ Setting CPU governor to performance..."
-if [ -f /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ]; then
-    echo performance | sudo tee /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-fi
-
-# Create virtual environment
-echo "🐍 Setting up Python virtual environment..."
-python3 -m venv venv
-source venv/bin/activate
-
-# Install Python dependencies
-echo "📚 Installing Python dependencies..."
-pip install --upgrade pip
-pip install -r requirements.txt
-
+echo "✅ Setup complete!"
 echo ""
-echo "🎉 Setup complete! Next steps:"
-echo "1. Reboot your Raspberry Pi: sudo reboot"
-echo "2. Activate the virtual environment: source venv/bin/activate"
-echo "3. Run the guitar effects: python main.py"
+echo "🎛️  Next steps:"
+echo "1. Reboot your Pi: sudo reboot"
+echo "2. After reboot, start the service: sudo systemctl start rust-audio-processor"
+echo "3. Check status: sudo systemctl status rust-audio-processor"
+echo "4. View logs: sudo journalctl -u rust-audio-processor -f"
 echo ""
-echo "🔌 GPIO Pin Layout:"
-echo "   Start Button: GPIO 17"
-echo "   Stop Button: GPIO 18"
-echo "   Tempo Up: GPIO 22"
-echo "   Tempo Down: GPIO 23"
-echo ""
-echo "📖 See README.md for detailed wiring instructions"
+echo "🎸 Happy playing!"
