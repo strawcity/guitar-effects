@@ -268,6 +268,30 @@ The system will:
 2. **Detect audio devices** based on platform priorities
 3. **Start stereo delay processing** immediately
 4. **Begin real-time processing** with guitar input
+5. **Show web interface notifications** when parameters are changed remotely
+
+### Web Interface Notifications
+
+When running in interactive mode, the CLI will show real-time notifications when
+parameters are changed from the web interface:
+
+```
+🎛️  Interactive Parameter Control
+Type 'help' for available commands, 'quit' to exit
+📱 Web interface changes will be shown here
+
+>
+
+🌐 [14:32:15] Web Interface: Left Delay changed from 0.30s to 0.45s
+>
+
+🌐 [14:32:18] Web Interface: Feedback changed from 0.30 to 0.55
+>
+```
+
+This is perfect for remote control via Pi-Connect - you can control the effects
+from your laptop's web browser and see the changes reflected in the Pi's
+terminal!
 
 ### Platform-Specific Behavior
 

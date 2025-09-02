@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guitar Effects Controller</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <h1>🎸 Guitar Effects Controller</h1>
+        <div class="status-indicator">
+          <span id="status-text">Connecting...</span>
+          <div id="status-dot" class="status-dot connecting"></div>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <!-- System Controls -->
+        <section class="control-section">
+          <h2>System Controls</h2>
+          <div class="control-grid">
+            <button id="start-btn" class="btn btn-primary">Start Audio</button>
+            <button id="stop-btn" class="btn btn-secondary">Stop Audio</button>
+            <button id="reset-btn" class="btn btn-warning">Reset Delay</button>
+          </div>
+        </section>
+
+        <!-- Stereo Delay Controls -->
+        <section class="control-section">
+          <h2>Stereo Delay</h2>
+          <div class="control-grid">
+            <div class="knob-group">
+              <label for="left-delay">Left Delay</label>
+              <div class="knob-container">
+                <input
+                  type="range"
+                  id="left-delay"
+                  class="knob"
+                  min="0"
+                  max="2"
+                  step="0.01"
+                  value="0.3"
+                />
+                <span class="knob-value" id="left-delay-value">0.3s</span>
+              </div>
+            </div>
+
+            <div class="knob-group">
+              <label for="right-delay">Right Delay</label>
+              <div class="knob-container">
+                <input
+                  type="range"
+                  id="right-delay"
+                  class="knob"
+                  min="0"
+                  max="2"
+                  step="0.01"
+                  value="0.6"
+                />
+                <span class="knob-value" id="right-delay-value">0.6s</span>
+              </div>
+            </div>
+
+            <div class="knob-group">
+              <label for="feedback">Feedback</label>
+              <div class="knob-container">
+                <input
+                  type="range"
+                  id="feedback"
+                  class="knob"
+                  min="0"
+                  max="0.9"
+                  step="0.01"
+                  value="0.3"
+                />
+                <span class="knob-value" id="feedback-value">0.3</span>
+              </div>
+            </div>
+
+            <div class="knob-group">
+              <label for="wet-mix">Wet Mix</label>
+              <div class="knob-container">
+                <input
+                  type="range"
+                  id="wet-mix"
+                  class="knob"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value="0.6"
+                />
+                <span class="knob-value" id="wet-mix-value">0.6</span>
+              </div>
+            </div>
+
+            <div class="knob-group">
+              <label for="stereo-width">Stereo Width</label>
+              <div class="knob-container">
+                <input
+                  type="range"
+                  id="stereo-width"
+                  class="knob"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value="0.5"
+                />
+                <span class="knob-value" id="stereo-width-value">0.5</span>
+              </div>
+            </div>
+
+            <div class="knob-group">
+              <label for="cross-feedback">Cross Feedback</label>
+              <div class="knob-container">
+                <input
+                  type="range"
+                  id="cross-feedback"
+                  class="knob"
+                  min="0"
+                  max="0.5"
+                  step="0.01"
+                  value="0.2"
+                />
+                <span class="knob-value" id="cross-feedback-value">0.2</span>
+              </div>
+            </div>
+
+            <div class="knob-group">
+              <label for="bpm">BPM</label>
+              <div class="knob-container">
+                <input
+                  type="range"
+                  id="bpm"
+                  class="knob"
+                  min="20"
+                  max="300"
+                  step="1"
+                  value="120"
+                />
+                <span class="knob-value" id="bpm-value">120 BPM</span>
+              </div>
+            </div>
+
+            <div class="toggle-group">
+              <label for="ping-pong">Ping Pong</label>
+              <label class="toggle">
+                <input type="checkbox" id="ping-pong" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <!-- Distortion Controls -->
+        <section class="control-section">
+          <h2>Distortion</h2>
+          <div class="control-grid">
+            <div class="toggle-group">
+              <label for="distortion-enabled">Enabled</label>
+              <label class="toggle">
+                <input type="checkbox" id="distortion-enabled" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="select-group">
+              <label for="distortion-type">Type</label>
+              <select id="distortion-type" class="select">
+                <option value="soft_clip">Soft Clip</option>
+                <option value="hard_clip">Hard Clip</option>
+                <option value="tube">Tube</option>
+                <option value="fuzz">Fuzz</option>
+                <option value="bit_crush">Bit Crush</option>
+                <option value="waveshaper">Waveshaper</option>
+              </select>
+            </div>
+
+            <div class="knob-group">
+              <label for="distortion-drive">Drive</label>
+              <div class="knob-container">
+                <input
+                  type="range"
+                  id="distortion-drive"
+                  class="knob"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value="0.3"
+                />
+                <span class="knob-value" id="distortion-drive-value">0.3</span>
+              </div>
+            </div>
+
+            <div class="knob-group">
+              <label for="distortion-mix">Mix</label>
+              <div class="knob-container">
+                <input
+                  type="range"
+                  id="distortion-mix"
+                  class="knob"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value="0.7"
+                />
+                <span class="knob-value" id="distortion-mix-value">0.7</span>
+              </div>
+            </div>
+
+            <div class="knob-group">
+              <label for="distortion-feedback-intensity"
+                >Feedback Intensity</label
+              >
+              <div class="knob-container">
+                <input
+                  type="range"
+                  id="distortion-feedback-intensity"
+                  class="knob"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value="0.5"
+                />
+                <span
+                  class="knob-value"
+                  id="distortion-feedback-intensity-value"
+                  >0.5</span
+                >
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- System Info -->
+        <section class="control-section">
+          <h2>System Information</h2>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Sample Rate:</label>
+              <span id="sample-rate">48000 Hz</span>
+            </div>
+            <div class="info-item">
+              <label>Buffer Size:</label>
+              <span id="buffer-size">1024</span>
+            </div>
+            <div class="info-item">
+              <label>Input Device:</label>
+              <span id="input-device">USB Audio Device</span>
+            </div>
+            <div class="info-item">
+              <label>Output Device:</label>
+              <span id="output-device">USB Audio Device</span>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

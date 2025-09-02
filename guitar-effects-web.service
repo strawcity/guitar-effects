@@ -1,0 +1,27 @@
+[Unit]
+Description=Guitar Effects Web Interface
+After=network.target sound.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/guitar-effects
+ExecStart=/home/pi/guitar-effects/target/release/rust_audio_processor --web --web-port 1051
+Restart=always
+RestartSec=3
+Environment=RUST_LOG=info
+
+# Audio group permissions
+SupplementaryGroups=audio
+
+# Performance settings
+Nice=-10
+IOSchedulingClass=realtime
+
+# Web interface specific
+Environment=WEB_PORT=1051
+Environment=WEB_HOST=0.0.0.0
+
+[Install]
+WantedBy=multi-user.target

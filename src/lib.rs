@@ -8,13 +8,14 @@ pub mod config;
 pub mod delay;
 pub mod distortion;
 pub mod error;
+pub mod web_server;
 #[cfg(target_os = "linux")]
 pub mod alsa_processor;
 
 
 
 /// Common trait for audio processors
-pub trait AudioProcessorTrait {
+pub trait AudioProcessorTrait: Send {
     fn start_audio(&mut self) -> std::result::Result<(), AudioProcessorError>;
     fn stop_audio(&mut self) -> std::result::Result<(), AudioProcessorError>;
     fn test_audio(&self) -> std::result::Result<(), AudioProcessorError>;

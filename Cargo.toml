@@ -12,6 +12,10 @@ parking_lot = "0.12"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"
+actix-web = "4.4"
+actix-files = "0.6"
+tokio = "1.0"
+chrono = "0.4"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 alsa = "0.9"
@@ -38,6 +42,14 @@ atty = "0.2"
 # Serialization (for config)
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+# Web server dependencies
+actix-web = "4.4"
+actix-files = "0.6"
+tokio = { version = "1.0", features = ["full", "macros"] }
+
+# Time and utilities
+chrono = { version = "0.4", features = ["serde"] }
 
 [dev-dependencies]
 criterion = "0.4"

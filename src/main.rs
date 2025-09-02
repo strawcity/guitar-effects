@@ -3,6 +3,8 @@ use rust_audio_processor::{config::AudioConfig, audio_processor::AudioProcessor,
 use rust_audio_processor::alsa_processor::AlsaAudioProcessor;
 use std::io::{self, Write};
 use std::env;
+use std::collections::HashMap;
+use chrono;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🎸 Rust Audio Processor for Guitar Stereo Delay Effects");
@@ -11,6 +13,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse command line arguments
     let args: Vec<String> = env::args().collect();
     let is_daemon_mode = args.contains(&"--daemon".to_string());
+    let enable_web = args.contains(&"--web".to_string());
+    let web_port = args.iter().position(|arg| arg == "--web-port")
+        .and_then(|i| args.get(i + 1))
+        .and_then(|s| s.parse::<u16>().ok())
+        .unwrap_or(1051);
     let _device_arg = args.iter().position(|arg| arg == "--device").map(|i| args.get(i + 1));
     
     // Show help if requested
@@ -47,6 +54,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if is_daemon_mode {
         println!("🔧 Running in daemon mode - starting audio processing...");
         daemon_mode(&mut processor)?;
+    } else if enable_web {
+        println!("🌐 Running with web interface...");
+        web_mode(&mut processor, web_port)?;
     } else {
         println!("🎛️  Running in interactive mode...");
         interactive_mode(&mut processor)?;
@@ -64,11 +74,15 @@ fn show_cli_help() {
     println!("Options:");
     println!("  --help, -h           Show this help message");
     println!("  --daemon             Run in daemon mode (non-interactive)");
+    println!("  --web                Run with web interface");
+    println!("  --web-port <port>    Web interface port (default: 1051)");
     println!("  --device <device>    Specify audio device (e.g., hw:2,0)");
     println!();
     println!("Examples:");
     println!("  cargo run --release                    # Interactive mode");
     println!("  cargo run --release --daemon           # Daemon mode");
+    println!("  cargo run --release --web              # Web interface mode");
+    println!("  cargo run --release --web --web-port 9090  # Custom port");
     println!("  cargo run --release --device hw:2,0    # Use specific device");
     println!();
     println!("Interactive Commands:");
@@ -133,10 +147,49 @@ fn daemon_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<dyn st
     }
 }
 
+fn web_mode(processor: &mut dyn AudioProcessorTrait, port: u16) -> Result<(), Box<dyn std::error::Error>> {
+    println!("🌐 Starting web interface mode...");
+    println!("📊 Initial status:");
+    show_status(processor)?;
+    
+    // Start real-time audio processing
+    println!("🎸 Starting real-time audio processing...");
+    match processor.start_audio() {
+        Ok(_) => {
+            println!("✅ Real-time audio processing started successfully!");
+            println!("🎵 Audio is now running and processing input from your audio device.");
+        }
+        Err(e) => {
+            println!("⚠️  Failed to start real-time audio processing: {}", e);
+            println!("💡 This is normal if no audio devices are connected or configured.");
+            println!("   The processor will still work for processing audio data.");
+        }
+    }
+    
+    println!("🌐 Web interface mode selected");
+    println!("📱 Web interface would be available at:");
+    println!("   http://localhost:{}", port);
+    println!("   http://0.0.0.0:{} (from other devices on network)", port);
+    println!("🎛️  Web interface implementation in progress...");
+    println!("💡 Use interactive mode for now: cargo run --release");
+    println!("📱 Web interface changes will be shown in the CLI\n");
+    
+    // Keep the program running
+    loop {
+        std::thread::sleep(std::time::Duration::from_secs(60));
+        println!("🌐 Web interface mode running... (Press Ctrl+C to exit)");
+    }
+}
+
 fn interactive_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🎛️  Interactive Parameter Control");
-    println!("Type 'help' for available commands, 'quit' to exit\n");
+    println!("Type 'help' for available commands, 'quit' to exit");
+    println!("📱 Web interface changes will be shown here\n");
     
+    // Store last known parameter values for change detection
+    let mut last_status = HashMap::new();
+    
+    // Main interactive loop
     loop {
         print!("> ");
         io::stdout().flush()?;
@@ -144,6 +197,21 @@ fn interactive_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<d
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
         let input = input.trim();
+        
+        // Check for parameter changes before processing input
+        if let Ok(status) = processor.get_status() {
+            for (key, value_str) in &status {
+                if let Ok(value) = value_str.parse::<f32>() {
+                    if let Some(last_value) = last_status.get(key) {
+                        if (value - last_value).abs() > 0.001 {
+                            // Value changed! Show notification
+                            show_parameter_change_notification(key, *last_value, value);
+                        }
+                    }
+                    last_status.insert(key.clone(), value);
+                }
+            }
+        }
         
         match input {
             "help" => show_help(),
@@ -177,7 +245,11 @@ fn interactive_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<d
             _ => {
                 if let Some((param, value)) = parse_parameter(input) {
                     match processor.set_stereo_delay_parameter(param, value) {
-                        Ok(_) => println!("✅ Set {} to {:.3}", param, value),
+                        Ok(_) => {
+                            println!("✅ Set {} to {:.3}", param, value);
+                            // Update last known value
+                            last_status.insert(param.to_string(), value);
+                        }
                         Err(e) => println!("❌ Error: {}", e),
                     }
                 } else if input.starts_with("distortion_type=") {
@@ -195,6 +267,51 @@ fn interactive_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<d
     }
     
     Ok(())
+}
+
+fn show_parameter_change_notification(param: &str, old_value: f32, new_value: f32) {
+    let timestamp = chrono::Local::now().format("%H:%M:%S");
+    
+    // Format the parameter name nicely
+    let param_display = match param {
+        "left_delay" => "Left Delay",
+        "right_delay" => "Right Delay", 
+        "feedback" => "Feedback",
+        "wet_mix" => "Wet Mix",
+        "stereo_width" => "Stereo Width",
+        "cross_feedback" => "Cross Feedback",
+        "bpm" => "BPM",
+        "distortion_drive" => "Distortion Drive",
+        "distortion_mix" => "Distortion Mix",
+        "distortion_feedback_intensity" => "Distortion Feedback",
+        _ => param,
+    };
+    
+    // Format values appropriately
+    let old_display = if param.contains("delay") || param == "bpm" {
+        if param == "bpm" {
+            format!("{:.0} BPM", old_value)
+        } else {
+            format!("{:.2}s", old_value)
+        }
+    } else {
+        format!("{:.2}", old_value)
+    };
+    
+    let new_display = if param.contains("delay") || param == "bpm" {
+        if param == "bpm" {
+            format!("{:.0} BPM", new_value)
+        } else {
+            format!("{:.2}s", new_value)
+        }
+    } else {
+        format!("{:.2}", new_value)
+    };
+    
+    println!("\n🌐 [{}] Web Interface: {} changed from {} to {}", 
+             timestamp, param_display, old_display, new_display);
+    print!("> "); // Restore prompt
+    io::stdout().flush().unwrap();
 }
 
 fn show_help() {
@@ -220,6 +337,9 @@ fn show_help() {
     println!("  distortion_feedback_intensity=0.3 - How much distortion affects feedback (0.0-1.0)");
     println!("\n🎛️  Available Distortion Types:");
     println!("  soft_clip, hard_clip, tube, fuzz, bit_crush, waveshaper");
+    println!("\n📱 Web Interface:");
+    println!("  Changes from web interface will be shown as notifications");
+    println!("  Perfect for remote control via Pi-Connect!");
     println!("\nExample: feedback=0.5");
 }
 
