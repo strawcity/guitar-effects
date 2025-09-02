@@ -37,7 +37,7 @@ features, and usage of this professional real-time audio processing system.
 ### Platform-Specific
 
 - **[Raspberry Pi Setup](platforms/raspberry-pi.md)** - Pi-specific setup and
-  GPIO integration
+  optimization
 - **[macOS Setup](platforms/macos.md)** - macOS audio backend and optimization
 
 ## 🎯 Quick Start
@@ -57,7 +57,6 @@ For immediate setup and usage, see:
 - **Real-Time Processing**: Ultra-low latency audio processing
 - **Cross-Platform Support**: Full compatibility with macOS, Linux, and
   Raspberry Pi
-- **GPIO Integration**: Physical button controls on Raspberry Pi
 - **Interactive CLI**: Menu-driven interface for parameter control
 
 ## 🏗️ System Overview

@@ -51,7 +51,6 @@ for your system.
 
 - Build essentials
 - ALSA development libraries
-- GPIO libraries (optional)
 
 ## 🍎 macOS Installation
 
@@ -387,31 +386,7 @@ cargo build --release
 ls -la target/release/
 ```
 
-### Step 6: Configure GPIO (Optional)
-
-#### Install GPIO Libraries
-
-```bash
-# Install GPIO libraries
-sudo apt install -y python3-gpiozero
-
-# Or install WiringPi
-sudo apt install -y wiringpi
-```
-
-#### Test GPIO
-
-```bash
-# Test GPIO access
-gpio readall
-
-# Test specific GPIO pin
-gpio -g mode 17 out
-gpio -g write 17 1
-gpio -g write 17 0
-```
-
-### Step 7: Test Installation
+### Step 6: Test Installation
 
 #### Test Audio System
 

@@ -28,7 +28,7 @@ considerations.
 - **Audio Backend**: ALSA with hardware acceleration
 - **Device Priority**: USB audio devices, built-in audio
 - **Optimizations**: Performance CPU governor, audio group permissions
-- **Features**: GPIO integration, physical button controls
+- **Features**: Physical button controls
 
 ### Windows (Planned)
 
@@ -275,71 +275,12 @@ ulimit -r
 
 ### Pi-Specific Features
 
-#### GPIO Integration
-
-```rust
-pub struct PiGpioInterface {
-    button_pins: Vec<u8>,
-    led_pins: Vec<u8>,
-    gpio_handle: Option<GpioHandle>,
-}
-
-impl PiGpioInterface {
-    pub fn new() -> Result<Self, AudioProcessorError> {
-        let button_pins = vec![17, 18, 27, 22]; // GPIO pins for buttons
-        let led_pins = vec![23, 24, 25, 8];      // GPIO pins for LEDs
-
-        let gpio_handle = if cfg!(target_os = "linux") {
-            Some(initialize_gpio()?)
-        } else {
-            None
-        };
-
-        Ok(Self {
-            button_pins,
-            led_pins,
-            gpio_handle,
-        })
-    }
-
-    pub fn register_button_callback(
-        &mut self,
-        pin: u8,
-        callback: Box<dyn Fn() + Send>,
-    ) -> Result<(), AudioProcessorError> {
-        if let Some(ref mut handle) = self.gpio_handle {
-            handle.register_callback(pin, callback)?;
-        }
-        Ok(())
-    }
-}
-```
-
 #### Physical Button Controls
 
 ```rust
 fn setup_pi_controls() -> Result<(), AudioProcessorError> {
-    let mut gpio = PiGpioInterface::new()?;
-
-    // Start/Stop button
-    gpio.register_button_callback(17, Box::new(|| {
-        toggle_audio_processing();
-    }))?;
-
-    // Delay time control
-    gpio.register_button_callback(18, Box::new(|| {
-        increase_delay_time();
-    }))?;
-
-    // Feedback control
-    gpio.register_button_callback(27, Box::new(|| {
-        increase_feedback();
-    }))?;
-
-    // Distortion control
-    gpio.register_button_callback(22, Box::new(|| {
-        cycle_distortion_type();
-    }))?;
+    // Physical button controls can be implemented here
+    // when needed for future development
 
     Ok(())
 }
@@ -452,16 +393,12 @@ sudo systemctl restart pulseaudio
 #### Common Issues
 
 1. **USB Audio Not Working**: Check USB power and drivers
-2. **GPIO Not Responding**: Check GPIO permissions and wiring
-3. **Audio Dropouts**: Increase buffer size and check CPU load
-4. **High Latency**: Configure real-time scheduling
+2. **Audio Dropouts**: Increase buffer size and check CPU load
+3. **High Latency**: Configure real-time scheduling
 
 #### Debug Commands
 
 ```bash
-# Check GPIO status
-gpio readall
-
 # Test audio system
 cargo run --release -- --test-audio
 

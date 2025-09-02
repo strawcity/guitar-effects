@@ -15,8 +15,7 @@ platform-specific optimizations.
 ├─────────────────────────────────────────────────────────────┤
 │  Main Application (main.rs)                                 │
 │  ├── CLI Interface                                          │
-│  ├── Interactive Mode                                       │
-│  └── GPIO Integration (Raspberry Pi)                       │
+│  └── Interactive Mode                                       │
 ├─────────────────────────────────────────────────────────────┤
 │                    Audio Processing Layer                   │
 ├─────────────────────────────────────────────────────────────┤
@@ -49,7 +48,6 @@ platform-specific optimizations.
 - **Responsibilities**:
   - CLI argument parsing and validation
   - Interactive mode management
-  - GPIO integration (Raspberry Pi)
   - Real-time parameter control
   - Error handling and graceful shutdown
 
@@ -113,7 +111,7 @@ Input Signal → Audio Processor → Effect Chain → Output Signal
 2. **Buffer Management**: Ring buffer for low-latency processing
 3. **Effect Processing**: Stereo delay with cross-feedback distortion
 4. **Output Rendering**: Processed audio sent to output device
-5. **Parameter Control**: Real-time parameter adjustment via CLI/GPIO
+5. **Parameter Control**: Real-time parameter adjustment via CLI
 
 ## 🎛️ Effect Chain Architecture
 

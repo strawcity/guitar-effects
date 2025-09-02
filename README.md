@@ -3,8 +3,7 @@
 A professional real-time guitar stereo delay effects processing system featuring
 advanced stereo delay algorithms. This system provides rich, spatial delay
 effects with independent left/right channel control and ultra-low latency
-processing. **Now with full Raspberry Pi support including GPIO button controls
-and immediate audio processing!**
+processing.
 
 **Project Structure:**
 
@@ -34,7 +33,6 @@ and immediate audio processing!**
   and width control
 - **Cross-Platform Support**: Full compatibility with macOS, Linux, and
   Raspberry Pi
-- **GPIO Integration**: Physical button controls on Raspberry Pi
 - **Real-time Audio Processing**: Ultra-low-latency audio processing using
   optimized audio processor
 - **Smart Audio Detection**: Platform-specific audio device detection and
@@ -225,7 +223,6 @@ cargo run --example basic_usage
 ### Raspberry Pi
 
 - **Audio Backend**: ALSA with hardware acceleration
-- **GPIO Controls**: Physical buttons for delay parameter control
 - **Optimizations**: Performance CPU governor, audio group permissions
 - **Device Priority**: USB audio devices, built-in audio
 
@@ -266,10 +263,9 @@ quit
 The system will:
 
 1. **Auto-detect platform** and apply optimizations
-2. **Initialize GPIO** (if on Pi)
-3. **Detect audio devices** based on platform priorities
-4. **Start stereo delay processing** immediately
-5. **Begin real-time processing** with guitar input
+2. **Detect audio devices** based on platform priorities
+3. **Start stereo delay processing** immediately
+4. **Begin real-time processing** with guitar input
 
 ### Platform-Specific Behavior
 
@@ -281,9 +277,7 @@ The system will:
 
 #### Raspberry Pi
 
-- **Button Controls**: Physical buttons for start/stop and delay time control
 - **Audio Optimization**: ALSA backend with hardware acceleration
-- **GPIO Status**: Real-time button callback handling
 
 ### Interactive Commands
 
@@ -414,24 +408,11 @@ cargo run --release -- --low-latency
 # (Platform-specific audio configuration)
 ```
 
-**GPIO Not Working (Pi):**
-
-```bash
-# Check GPIO status
-cargo run --release -- --gpio-status
-
-# Verify user permissions
-sudo usermod -a -G gpio $USER
-```
-
 ### Platform-Specific Debugging
 
 #### Raspberry Pi
 
 ```bash
-# Check GPIO status (if GPIO support is implemented)
-cargo run --release -- --gpio-status
-
 # Test audio system
 cargo run --release -- --list-devices
 
@@ -478,35 +459,6 @@ To add a new effect:
 2. Implement the `Effect` trait
 3. Add the effect to the main system's effect selection
 4. Update the CLI to support the new effect
-
-### Adding GPIO Components (Pi Only)
-
-To add new GPIO functionality:
-
-1. **Add pins to config**: Update pin assignments in `config.rs`
-2. **Extend GPIOInterface**: Add new methods to `gpio.rs` (if implemented)
-3. **Register callbacks**: Connect GPIO events to system functions
-4. **Handle errors**: Ensure graceful fallback for GPIO failures
-
-Example GPIO extension:
-
-```rust
-// In config.rs
-pub struct GpioConfig {
-    pub sensor_pin: u8,
-    pub actuator_pin: u8,
-}
-
-// In gpio.rs
-impl GpioInterface {
-    pub fn read_sensor(&self) -> Result<bool, GpioError> {
-        // Implementation
-    }
-}
-
-// In main.rs
-gpio.register_callback("sensor", handle_sensor_event)?;
-```
 
 ## Future Development
 

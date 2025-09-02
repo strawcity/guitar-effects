@@ -288,36 +288,6 @@ aplay -l
    groups $USER
    ```
 
-### GPIO Issues
-
-#### Problem: GPIO buttons not responding
-
-**Solutions**:
-
-1. **Check GPIO Permissions**:
-
-   ```bash
-   # Add user to gpio group
-   sudo usermod -a -G gpio $USER
-
-   # Check GPIO status
-   gpio readall
-   ```
-
-2. **Test GPIO Pins**:
-
-   ```bash
-   # Test specific GPIO pin
-   gpio -g mode 17 out
-   gpio -g write 17 1
-   gpio -g write 17 0
-   ```
-
-3. **Check Wiring**:
-   - Verify button connections
-   - Check for loose connections
-   - Ensure proper ground connection
-
 ### Performance Issues
 
 #### Problem: High CPU usage, audio dropouts

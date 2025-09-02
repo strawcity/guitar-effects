@@ -3,8 +3,8 @@
 ## Overview
 
 This guide provides comprehensive setup instructions for running the Guitar
-Effects System on Raspberry Pi, including GPIO integration, audio configuration,
-and performance optimization.
+Effects System on Raspberry Pi, including audio configuration and performance
+optimization.
 
 ## 🍓 Prerequisites
 
@@ -12,7 +12,6 @@ and performance optimization.
 
 - **Raspberry Pi**: Pi 3B+ or Pi 4 (recommended)
 - **Audio Interface**: USB audio interface (e.g., Focusrite Scarlett 2i2)
-- **GPIO Components**: Buttons, LEDs, and wiring (optional)
 - **Power Supply**: 5V/3A power supply for stable operation
 - **Storage**: 8GB+ microSD card
 
@@ -57,7 +56,7 @@ cargo --version
 
 #### Install Build Dependencies
 
-```bash
+````bash
 # Install build essentials
 sudo apt install -y build-essential pkg-config
 
@@ -66,17 +65,6 @@ sudo apt install -y libasound2-dev
 
 # Install additional dependencies
 sudo apt install -y libssl-dev libudev-dev
-```
-
-#### Install GPIO Libraries (Optional)
-
-```bash
-# Install GPIO libraries
-sudo apt install -y python3-gpiozero
-
-# Or install WiringPi
-sudo apt install -y wiringpi
-```
 
 ### Step 3: Audio Configuration
 
@@ -88,7 +76,7 @@ sudo usermod -a -G audio $USER
 
 # Verify group membership
 groups $USER
-```
+````
 
 #### Fix USB Audio Issues
 
@@ -213,13 +201,6 @@ ctl.!default {
     "drive": 0.3,
     "mix": 0.6,
     "feedback_intensity": 0.4
-  },
-  "gpio": {
-    "enabled": true,
-    "start_stop_pin": 17,
-    "delay_time_pin": 18,
-    "feedback_pin": 27,
-    "distortion_pin": 22
   }
 }
 ```
@@ -239,22 +220,6 @@ echo 'export GUITAR_EFFECTS_BUFFER_SIZE=1024' >> ~/.bashrc
 ```
 
 ## 🧪 Testing
-
-### GPIO Testing
-
-```bash
-# Test GPIO access
-gpio readall
-
-# Test specific GPIO pin
-gpio -g mode 17 out
-gpio -g write 17 1
-gpio -g write 17 0
-
-# Test button input
-gpio -g mode 17 in
-gpio -g read 17
-```
 
 ### Audio Testing
 
@@ -306,21 +271,6 @@ echo 'dwc_otg.fiq_fsm_enable=0' | sudo tee -a /boot/firmware/cmdline.txt
 sudo reboot
 ```
 
-#### GPIO Not Responding
-
-```bash
-# Check GPIO permissions
-sudo usermod -a -G gpio $USER
-
-# Check GPIO status
-gpio readall
-
-# Test GPIO pins
-gpio -g mode 17 out
-gpio -g write 17 1
-gpio -g write 17 0
-```
-
 #### High CPU Usage
 
 ```bash
@@ -358,9 +308,6 @@ cat /proc/meminfo
 # Check audio devices
 aplay -l
 cat /proc/asound/cards
-
-# Check GPIO status
-gpio readall
 
 # Monitor system resources
 htop
@@ -434,7 +381,6 @@ ssh pi@raspberrypi.local "htop"
 ### External Resources
 
 - **[Raspberry Pi Documentation](https://www.raspberrypi.org/documentation/)**
-- **[GPIO Documentation](https://www.raspberrypi.org/documentation/usage/gpio/)**
 - **[ALSA Documentation](https://alsa-project.org/wiki/Main_Page)**
 
 ### Community Support
