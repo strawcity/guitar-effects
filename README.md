@@ -210,6 +210,8 @@ cargo run --example basic_usage
 - **API Documentation**: `cargo doc --open`
 - **Examples**: See `examples/`
 - **Real-time Control**: Parameter adjustment during playback
+- **Web Interface**: See `WEB_INTERFACE_README.md` for detailed web interface
+  documentation
 
 ## Platform-Specific Features
 
@@ -232,6 +234,27 @@ cargo run --example basic_usage
 - **Device Priority**: System default devices
 
 ## Usage
+
+### Quick Reference
+
+```bash
+# Interactive mode (default)
+cargo run --release
+
+# Web interface mode
+cargo run --release -- --web
+
+# Web interface with custom port
+cargo run --release -- --web --web-port 9090
+
+# Daemon mode (headless)
+cargo run --release -- --daemon
+
+# Help
+cargo run --release -- --help
+```
+
+### Basic Usage
 
 ### Basic Usage
 
@@ -292,6 +315,59 @@ Type 'help' for available commands, 'quit' to exit
 This is perfect for remote control via Pi-Connect - you can control the effects
 from your laptop's web browser and see the changes reflected in the Pi's
 terminal!
+
+### Web Interface Mode
+
+Run the system with web interface for remote control:
+
+```bash
+# Start with default port (1051)
+cargo run --release -- --web
+
+# Start with custom port
+cargo run --release -- --web --web-port 9090
+```
+
+The web interface will be available at:
+
+- **Local**: `http://localhost:1051`
+- **Network**: `http://[raspberry-pi-ip]:1051`
+
+#### Web Interface Features
+
+- **Virtual Knobs**: Adjust all parameters with mouse/touch controls
+- **Real-time Updates**: See parameter changes instantly
+- **Mobile Friendly**: Works on phones and tablets
+- **Network Access**: Control from any device on your network
+- **CLI Integration**: Changes show as notifications in the terminal
+
+#### Perfect for Remote Control
+
+1. **Pi-Connect to Raspberry Pi**: Access Pi's terminal remotely
+2. **Start web interface**: `cargo run --release -- --web`
+3. **Open browser on laptop**: `http://[pi-ip]:1051`
+4. **Control effects**: Use web interface knobs and sliders
+5. **See feedback**: Watch CLI notifications in Pi terminal
+
+### Daemon Mode (Headless)
+
+Run the system as a background service:
+
+```bash
+# Run in daemon mode
+cargo run --release -- --daemon
+
+# Or use systemd service (Raspberry Pi)
+sudo systemctl start guitar-effects-web
+sudo systemctl enable guitar-effects-web
+```
+
+The daemon will:
+
+- Start audio processing automatically
+- Run in the background
+- Restart automatically if it crashes
+- Log to system journal
 
 ### Platform-Specific Behavior
 
