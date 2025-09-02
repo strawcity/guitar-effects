@@ -4,6 +4,7 @@ use rust_audio_processor::alsa_processor::AlsaAudioProcessor;
 use std::io::{self, Write};
 use std::env;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use chrono;
 
 #[tokio::main]
@@ -37,30 +38,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Create audio processor with loaded configuration
     #[cfg(target_os = "linux")]
-    let mut processor = AlsaAudioProcessor::with_config(config)?;
+    let processor = AlsaAudioProcessor::with_config(config)?;
     #[cfg(not(target_os = "linux"))]
-    let mut processor = AudioProcessor::with_config(config)?;
+    let processor = AudioProcessor::with_config(config)?;
+    
+    // Wrap processor in Arc<Mutex> for sharing between threads
+    let processor_arc = Arc::new(Mutex::new(Box::new(processor) as Box<dyn AudioProcessorTrait + Send>));
     
     // Test the audio processing
     println!("Testing audio processing...");
-    match processor.test_audio() {
-        Ok(_) => println!("✅ Audio test completed successfully"),
-        Err(e) => {
-            println!("⚠️  Audio test failed: {}", e);
-            println!("💡 This is normal if no audio devices are connected or configured.");
-            println!("   The processor will still work for processing audio data.");
+    {
+        let mut processor_guard = processor_arc.lock().unwrap();
+        match processor_guard.test_audio() {
+            Ok(_) => println!("✅ Audio test completed successfully"),
+            Err(e) => {
+                println!("⚠️  Audio test failed: {}", e);
+                println!("💡 This is normal if no audio devices are connected or configured.");
+                println!("   The processor will still work for processing audio data.");
+            }
         }
     }
     
     if is_daemon_mode {
         println!("🔧 Running in daemon mode - starting audio processing...");
-        daemon_mode(&mut processor)?;
+        daemon_mode(processor_arc)?;
     } else if enable_web {
         println!("🌐 Running with web interface...");
-        web_mode(&mut processor, web_port).await?;
+        web_mode(processor_arc, web_port).await?;
     } else {
         println!("🎛️  Running in interactive mode...");
-        interactive_mode(&mut processor)?;
+        interactive_mode(processor_arc)?;
     }
     
     Ok(())
@@ -102,22 +109,25 @@ fn show_cli_help() {
     println!("  cross_feedback=0.2  - Cross-feedback between channels (0.0-0.5)");
 }
 
-fn daemon_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<dyn std::error::Error>> {
+fn daemon_mode(processor: Arc<Mutex<Box<dyn AudioProcessorTrait + Send>>>) -> Result<(), Box<dyn std::error::Error>> {
     println!("🎵 Starting audio processing daemon...");
     println!("📊 Initial status:");
-    show_status(processor)?;
+    show_status(&**processor.lock().unwrap())?;
     
     // Start real-time audio processing
     println!("🎸 Starting real-time audio processing...");
-    match processor.start_audio() {
-        Ok(_) => {
-            println!("✅ Real-time audio processing started successfully!");
-            println!("🎵 Audio is now running and processing input from your audio device.");
-        }
-        Err(e) => {
-            println!("⚠️  Failed to start real-time audio processing: {}", e);
-            println!("💡 This is normal if no audio devices are connected or configured.");
-            println!("   The processor will still work for processing audio data.");
+    {
+        let mut processor_guard = processor.lock().unwrap();
+        match processor_guard.start_audio() {
+            Ok(_) => {
+                println!("✅ Real-time audio processing started successfully!");
+                println!("🎵 Audio is now running and processing input from your audio device.");
+            }
+            Err(e) => {
+                println!("⚠️  Failed to start real-time audio processing: {}", e);
+                println!("💡 This is normal if no audio devices are connected or configured.");
+                println!("   The processor will still work for processing audio data.");
+            }
         }
     }
     
@@ -132,38 +142,46 @@ fn daemon_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<dyn st
         std::thread::sleep(std::time::Duration::from_secs(60));
         
         // Optional: periodic status check
-        if let Ok(status) = processor.get_status() {
-            if status.get("audio_running").map(|s| s == "true").unwrap_or(false) {
-                // Audio is running, continue
-            } else {
-                println!("⚠️  Audio processing stopped, attempting restart...");
-                if let Err(e) = processor.start_audio() {
-                    println!("⚠️  Audio restart failed: {}", e);
-                    println!("💡 This is normal if no audio devices are available.");
+        {
+            let processor_guard = processor.lock().unwrap();
+            if let Ok(status) = processor_guard.get_status() {
+                if status.get("audio_running").map(|s| s == "true").unwrap_or(false) {
+                    // Audio is running, continue
                 } else {
-                    println!("✅ Audio processing restarted successfully!");
+                    println!("⚠️  Audio processing stopped, attempting restart...");
+                    drop(processor_guard); // Release lock before calling start_audio
+                    let mut processor_guard = processor.lock().unwrap();
+                    if let Err(e) = processor_guard.start_audio() {
+                        println!("⚠️  Audio restart failed: {}", e);
+                        println!("💡 This is normal if no audio devices are available.");
+                    } else {
+                        println!("✅ Audio processing restarted successfully!");
+                    }
                 }
             }
         }
     }
 }
 
-async fn web_mode(processor: &mut dyn AudioProcessorTrait, port: u16) -> Result<(), Box<dyn std::error::Error>> {
+async fn web_mode(processor: Arc<Mutex<Box<dyn AudioProcessorTrait + Send>>>, port: u16) -> Result<(), Box<dyn std::error::Error>> {
     println!("🌐 Starting web interface mode...");
     println!("📊 Initial status:");
-    show_status(processor)?;
+    show_status(&**processor.lock().unwrap())?;
     
     // Start real-time audio processing
     println!("🎸 Starting real-time audio processing...");
-    match processor.start_audio() {
-        Ok(_) => {
-            println!("✅ Real-time audio processing started successfully!");
-            println!("🎵 Audio is now running and processing input from your audio device.");
-        }
-        Err(e) => {
-            println!("⚠️  Failed to start real-time audio processing: {}", e);
-            println!("💡 This is normal if no audio devices are connected or configured.");
-            println!("   The processor will still work for processing audio data.");
+    {
+        let mut processor_guard = processor.lock().unwrap();
+        match processor_guard.start_audio() {
+            Ok(_) => {
+                println!("✅ Real-time audio processing started successfully!");
+                println!("🎵 Audio is now running and processing input from your audio device.");
+            }
+            Err(e) => {
+                println!("⚠️  Failed to start real-time audio processing: {}", e);
+                println!("💡 This is normal if no audio devices are connected or configured.");
+                println!("   The processor will still work for processing audio data.");
+            }
         }
     }
     
@@ -172,28 +190,20 @@ async fn web_mode(processor: &mut dyn AudioProcessorTrait, port: u16) -> Result<
     println!("   http://localhost:{}", port);
     println!("   http://0.0.0.0:{} (from other devices on network)", port);
     
-    // Create web server and start it
-    // Note: We need to create a new processor instance for the web server
-    // since we can't clone the trait object
-    let config = AudioConfig::load_or_default("pi_config.json");
-    #[cfg(target_os = "linux")]
-    let web_processor = AlsaAudioProcessor::with_config(config)?;
-    #[cfg(not(target_os = "linux"))]
-    let web_processor = AudioProcessor::with_config(config)?;
-    
-    let web_server = WebServer::new(Box::new(web_processor));
+    // Create web server with the shared processor
+    let web_server = WebServer::new(processor);
     web_server.start(port).await?;
     
     Ok(())
 }
 
-fn interactive_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<dyn std::error::Error>> {
+fn interactive_mode(processor: Arc<Mutex<Box<dyn AudioProcessorTrait + Send>>>) -> Result<(), Box<dyn std::error::Error>> {
     println!("\n🎛️  Interactive Parameter Control");
     println!("Type 'help' for available commands, 'quit' to exit");
     println!("📱 Web interface changes will be shown here\n");
     
     // Store last known parameter values for change detection
-    let mut last_status = HashMap::new();
+    let mut last_status: HashMap<String, f32> = HashMap::new();
     
     // Main interactive loop
     loop {
@@ -205,16 +215,19 @@ fn interactive_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<d
         let input = input.trim();
         
         // Check for parameter changes before processing input
-        if let Ok(status) = processor.get_status() {
-            for (key, value_str) in &status {
-                if let Ok(value) = value_str.parse::<f32>() {
-                    if let Some(last_value) = last_status.get(key) {
-                        if (value - last_value).abs() > 0.001 {
-                            // Value changed! Show notification
-                            show_parameter_change_notification(key, *last_value, value);
+        {
+            let processor_guard = processor.lock().unwrap();
+            if let Ok(status) = processor_guard.get_status() {
+                for (key, value_str) in &status {
+                    if let Ok(value) = value_str.parse::<f32>() {
+                        if let Some(last_value) = last_status.get(key) {
+                            if (value - last_value).abs() > 0.001 {
+                                // Value changed! Show notification
+                                show_parameter_change_notification(key, *last_value, value);
+                            }
                         }
+                        last_status.insert(key.clone(), value);
                     }
-                    last_status.insert(key.clone(), value);
                 }
             }
         }
@@ -222,35 +235,43 @@ fn interactive_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<d
         match input {
             "help" => show_help(),
             "quit" | "exit" => break,
-            "status" => show_status(processor)?,
+            "status" => {
+                let processor_guard = processor.lock().unwrap();
+                show_status(&**processor_guard)?;
+            }
             "test" => {
                 println!("Running audio test...");
-                processor.test_audio()?;
+                let processor_guard = processor.lock().unwrap();
+                processor_guard.test_audio()?;
             }
             "start" => {
                 println!("Starting real-time audio processing...");
-                match processor.start_audio() {
+                let mut processor_guard = processor.lock().unwrap();
+                match processor_guard.start_audio() {
                     Ok(_) => println!("✅ Real-time audio processing started!"),
                     Err(e) => println!("❌ Error: {}", e),
                 }
             }
             "stop" => {
                 println!("Stopping real-time audio processing...");
-                match processor.stop_audio() {
+                let mut processor_guard = processor.lock().unwrap();
+                match processor_guard.stop_audio() {
                     Ok(_) => println!("✅ Real-time audio processing stopped!"),
                     Err(e) => println!("❌ Error: {}", e),
                 }
             }
             "reset" => {
                 println!("Resetting delay buffers...");
-                match processor.reset_delay() {
+                let mut processor_guard = processor.lock().unwrap();
+                match processor_guard.reset_delay() {
                     Ok(_) => println!("✅ Delay buffers reset!"),
                     Err(e) => println!("❌ Error: {}", e),
                 }
             }
             _ => {
                 if let Some((param, value)) = parse_parameter(input) {
-                    match processor.set_stereo_delay_parameter(param, value) {
+                    let mut processor_guard = processor.lock().unwrap();
+                    match processor_guard.set_stereo_delay_parameter(param, value) {
                         Ok(_) => {
                             println!("✅ Set {} to {:.3}", param, value);
                             // Update last known value
@@ -261,7 +282,8 @@ fn interactive_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<d
                 } else if input.starts_with("distortion_type=") {
                     // Handle distortion type command
                     let distortion_type = input.strip_prefix("distortion_type=").unwrap_or("");
-                    match processor.set_distortion_type(distortion_type) {
+                    let mut processor_guard = processor.lock().unwrap();
+                    match processor_guard.set_distortion_type(distortion_type) {
                         Ok(_) => println!("✅ Set distortion type to {}", distortion_type),
                         Err(e) => println!("❌ Error: {}", e),
                     }

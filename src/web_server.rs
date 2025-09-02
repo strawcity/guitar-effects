@@ -52,9 +52,9 @@ pub struct WebServer {
 }
 
 impl WebServer {
-    pub fn new(processor: Box<dyn AudioProcessorTrait + Send>) -> Self {
+    pub fn new(processor: Arc<Mutex<Box<dyn AudioProcessorTrait + Send>>>) -> Self {
         Self {
-            processor: Arc::new(Mutex::new(processor)),
+            processor,
         }
     }
 
