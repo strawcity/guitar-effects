@@ -30,6 +30,43 @@ lsusb
 
 ## 🚨 Common Issues and Solutions
 
+### Issue: "Broken pipe (32)" ALSA errors
+
+**Symptoms:**
+
+- `Output write error: ALSA function 'snd_pcm_writei' failed with error 'Broken pipe (32)'`
+- Audio stops working intermittently
+- USB device disconnections/reconnections
+
+**Quick Fix:**
+
+```bash
+# Run the quick fix script
+chmod +x quick_fix.sh
+./quick_fix.sh
+sudo reboot
+```
+
+**Full Fix (if quick fix doesn't work):**
+
+```bash
+# Run the comprehensive fix script
+chmod +x fix_usb_audio.sh
+./fix_usb_audio.sh
+sudo reboot
+```
+
+**Manual Fix:**
+
+1. Stop PulseAudio: `pulseaudio --kill`
+2. Create ALSA config: `sudo nano /etc/asound.conf`
+3. Add: `pcm.!default { type hw; card 2; device 0; }`
+4. Set permissions: `sudo chmod 666 /dev/snd/*`
+5. Add user to audio group: `sudo usermod -a -G audio $USER`
+6. Set CPU governor:
+   `echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor`
+7. Reboot: `sudo reboot`
+
 ### Issue: "Output test failed" in fix_audio_io.sh
 
 **Symptoms:**
