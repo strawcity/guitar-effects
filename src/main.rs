@@ -1,4 +1,4 @@
-use rust_audio_processor::{config::AudioConfig, audio_processor::AudioProcessor, AudioProcessorTrait};
+use rust_audio_processor::{config::AudioConfig, audio_processor::AudioProcessor, AudioProcessorTrait, web_server::WebServer};
 #[cfg(target_os = "linux")]
 use rust_audio_processor::alsa_processor::AlsaAudioProcessor;
 use std::io::{self, Write};
@@ -6,7 +6,8 @@ use std::env;
 use std::collections::HashMap;
 use chrono;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🎸 Rust Audio Processor for Guitar Stereo Delay Effects");
     println!("=====================================================\n");
     
@@ -56,7 +57,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         daemon_mode(&mut processor)?;
     } else if enable_web {
         println!("🌐 Running with web interface...");
-        web_mode(&mut processor, web_port)?;
+        web_mode(&mut processor, web_port).await?;
     } else {
         println!("🎛️  Running in interactive mode...");
         interactive_mode(&mut processor)?;
@@ -147,7 +148,7 @@ fn daemon_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<dyn st
     }
 }
 
-fn web_mode(processor: &mut dyn AudioProcessorTrait, port: u16) -> Result<(), Box<dyn std::error::Error>> {
+async fn web_mode(processor: &mut dyn AudioProcessorTrait, port: u16) -> Result<(), Box<dyn std::error::Error>> {
     println!("🌐 Starting web interface mode...");
     println!("📊 Initial status:");
     show_status(processor)?;
@@ -166,19 +167,24 @@ fn web_mode(processor: &mut dyn AudioProcessorTrait, port: u16) -> Result<(), Bo
         }
     }
     
-    println!("🌐 Web interface mode selected");
-    println!("📱 Web interface would be available at:");
+    println!("🌐 Starting web server...");
+    println!("📱 Web interface will be available at:");
     println!("   http://localhost:{}", port);
     println!("   http://0.0.0.0:{} (from other devices on network)", port);
-    println!("🎛️  Web interface implementation in progress...");
-    println!("💡 Use interactive mode for now: cargo run --release");
-    println!("📱 Web interface changes will be shown in the CLI\n");
     
-    // Keep the program running
-    loop {
-        std::thread::sleep(std::time::Duration::from_secs(60));
-        println!("🌐 Web interface mode running... (Press Ctrl+C to exit)");
-    }
+    // Create web server and start it
+    // Note: We need to create a new processor instance for the web server
+    // since we can't clone the trait object
+    let config = AudioConfig::load_or_default("pi_config.json");
+    #[cfg(target_os = "linux")]
+    let web_processor = AlsaAudioProcessor::with_config(config)?;
+    #[cfg(not(target_os = "linux"))]
+    let web_processor = AudioProcessor::with_config(config)?;
+    
+    let web_server = WebServer::new(Box::new(web_processor));
+    web_server.start(port).await?;
+    
+    Ok(())
 }
 
 fn interactive_mode(processor: &mut dyn AudioProcessorTrait) -> Result<(), Box<dyn std::error::Error>> {
