@@ -80,8 +80,7 @@ fn show_cli_help() {
     println!("  quit/exit           - Exit the program");
     println!();
     println!("Parameter Settings (format: parameter=value):");
-    println!("  left_delay=0.3      - Left channel delay time (seconds)");
-    println!("  right_delay=0.6     - Right channel delay time (seconds)");
+    println!("  bpm=120              - Tempo in beats per minute (20-300 BPM)");
     println!("  feedback=0.3        - Feedback amount (0.0-0.9)");
     println!("  wet_mix=0.6         - Wet signal mix (0.0-1.0)");
     println!("  stereo_width=0.5    - Stereo width enhancement (0.0-1.0)");
@@ -208,8 +207,7 @@ fn show_help() {
     println!("  reset                   - Reset delay buffers (clear feedback)");
     println!("  quit/exit               - Exit the program");
     println!("\n🎛️  Parameter Settings (format: parameter=value):");
-    println!("  left_delay=0.3          - Left channel delay time (seconds)");
-    println!("  right_delay=0.6         - Right channel delay time (seconds)");
+    println!("  bpm=120              - Tempo in beats per minute (20-300 BPM)");
     println!("  feedback=0.3            - Feedback amount (0.0-0.9)");
     println!("  wet_mix=0.6             - Wet signal mix (0.0-1.0)");
     println!("  stereo_width=0.5        - Stereo width enhancement (0.0-1.0)");

@@ -133,15 +133,14 @@ with advanced features:
 ```rust
 use rust_audio_processor::delay::{StereoDelay, DelayConfig};
 
-// Advanced stereo delay with ping-pong, width enhancement, and cross-feedback distortion
+// Advanced stereo delay with BPM-based timing, ping-pong, width enhancement, and cross-feedback distortion
 let config = DelayConfig {
-    left_delay: 0.3,      // Left channel delay time
-    right_delay: 0.6,     // Right channel delay time
-    feedback: 0.3,        // Feedback amount
-    wet_mix: 0.6,         // Wet signal mix
-    ping_pong: true,      // Enable ping-pong pattern
-    stereo_width: 0.5,    // Stereo width enhancement
-    cross_feedback: 0.2,  // Cross-feedback between channels
+    bpm: Some(120.0),     // Tempo in beats per minute
+    feedback: 0.3,         // Feedback amount
+    wet_mix: 0.6,          // Wet signal mix
+    ping_pong: true,       // Enable ping-pong pattern
+    stereo_width: 0.5,     // Stereo width enhancement
+    cross_feedback: 0.2,   // Cross-feedback between channels
     cross_feedback_distortion: true,  // Enable distortion on cross-feedback
     distortion_type: DistortionType::SoftClip,  // Type of distortion
     distortion_drive: 0.3,  // Distortion drive amount
@@ -254,8 +253,11 @@ Interactive CLI commands:
 
 ```
 start | stop | status
-delay <type>   (basic, tape, multi, tempo, stereo)
-time <seconds> | feedback <0-0.9> | wet <0-1.0>
+bpm=120              # Set tempo in beats per minute (20-300 BPM)
+feedback=0.3         # Feedback amount (0.0-0.9)
+wet_mix=0.6          # Wet signal mix (0.0-1.0)
+stereo_width=0.5      # Stereo width enhancement (0.0-1.0)
+cross_feedback=0.2    # Cross-feedback between channels (0.0-0.5)
 effects | demo
 quit
 ```
@@ -302,8 +304,7 @@ cargo run --release -- --help
 
 # Example with all parameters
 cargo run --release -- \
-  --left-delay 0.3 \
-  --right-delay 0.6 \
+  --bpm 120 \
   --feedback 0.4 \
   --wet-mix 0.7 \
   --ping-pong \
@@ -314,7 +315,9 @@ cargo run --release -- \
 
 ### Stereo Delay Features
 
-- **Independent left/right delays**: Set different delay times for each channel
+- **BPM-based timing**: Set tempo in beats per minute to control both left (1/4
+  note) and right (1/2 note) delay times
+- **Musical synchronization**: Delay times automatically sync to the beat
 - **Ping-pong patterns**: Creates bouncing delay effects between channels
 - **Stereo width enhancement**: Expands the stereo image using mid-side
   processing

@@ -63,7 +63,7 @@ impl AudioProcessor {
     }
     
     /// Set stereo delay effect parameter
-    pub fn set_stereo_delay_parameter(&self, param: &str, value: f32) -> Result<(), AudioProcessorError> {
+    pub fn set_stereo_delay_parameter(&mut self, param: &str, value: f32) -> Result<(), AudioProcessorError> {
         let mut delay = self.stereo_delay.lock().map_err(|_| {
             AudioProcessorError::Threading("Failed to acquire stereo delay lock".to_string())
         })?;
@@ -71,6 +71,17 @@ impl AudioProcessor {
         match param {
             "left_delay" => delay.set_left_delay(value),
             "right_delay" => delay.set_right_delay(value),
+            "bpm" => {
+                // Set BPM and calculate delay times
+                let mut config = self.config.clone();
+                config.stereo_delay.set_bpm(value);
+                delay.set_left_delay(config.stereo_delay.left_delay);
+                delay.set_right_delay(config.stereo_delay.right_delay);
+                // Update the stored config
+                self.config.stereo_delay.bpm = config.stereo_delay.bpm;
+                self.config.stereo_delay.left_delay = config.stereo_delay.left_delay;
+                self.config.stereo_delay.right_delay = config.stereo_delay.right_delay;
+            },
             "feedback" => delay.set_feedback(value),
             "wet_mix" => delay.set_wet_mix(value),
             "ping_pong" => delay.set_stereo_parameters(Some(value > 0.5), None, None),
@@ -603,6 +614,19 @@ impl AudioProcessor {
         
         status.insert("stereo_delay_active".to_string(), "true".to_string());
         status.insert("audio_running".to_string(), self.is_running.read().to_string());
+        
+        // Add BPM information if available
+        if let Some(bpm) = self.config.stereo_delay.bpm {
+            status.insert("bpm".to_string(), format!("{:.0}", bpm));
+            status.insert("left_delay_ms".to_string(), format!("{:.0}", self.config.stereo_delay.left_delay * 1000.0));
+            status.insert("right_delay_ms".to_string(), format!("{:.0}", self.config.stereo_delay.right_delay * 1000.0));
+            status.insert("left_note_division".to_string(), "1/4 note".to_string());
+            status.insert("right_note_division".to_string(), "1/2 note".to_string());
+        } else {
+            status.insert("bpm".to_string(), "Not set".to_string());
+            status.insert("left_delay_ms".to_string(), format!("{:.0}", self.config.stereo_delay.left_delay * 1000.0));
+            status.insert("right_delay_ms".to_string(), format!("{:.0}", self.config.stereo_delay.right_delay * 1000.0));
+        }
         
         if let Ok(delay) = self.stereo_delay.lock() {
             status.insert("stereo_delay_info".to_string(), delay.get_info());

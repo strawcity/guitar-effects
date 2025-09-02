@@ -19,7 +19,7 @@ pub trait AudioProcessorTrait {
     fn stop_audio(&mut self) -> std::result::Result<(), AudioProcessorError>;
     fn test_audio(&self) -> std::result::Result<(), AudioProcessorError>;
     fn get_status(&self) -> std::result::Result<std::collections::HashMap<String, String>, AudioProcessorError>;
-    fn set_stereo_delay_parameter(&self, param: &str, value: f32) -> std::result::Result<(), AudioProcessorError>;
+    fn set_stereo_delay_parameter(&mut self, param: &str, value: f32) -> std::result::Result<(), AudioProcessorError>;
     fn set_distortion_type(&self, distortion_type: &str) -> std::result::Result<(), AudioProcessorError>;
     fn reset_delay(&self) -> std::result::Result<(), AudioProcessorError>;
 }
@@ -42,7 +42,7 @@ impl AudioProcessorTrait for audio_processor::AudioProcessor {
         self.get_status()
     }
     
-    fn set_stereo_delay_parameter(&self, param: &str, value: f32) -> std::result::Result<(), AudioProcessorError> {
+    fn set_stereo_delay_parameter(&mut self, param: &str, value: f32) -> std::result::Result<(), AudioProcessorError> {
         self.set_stereo_delay_parameter(param, value)
     }
     
@@ -71,14 +71,10 @@ impl AudioProcessorTrait for alsa_processor::AlsaAudioProcessor {
     }
     
     fn get_status(&self) -> std::result::Result<std::collections::HashMap<String, String>, AudioProcessorError> {
-        // Simple status for ALSA processor
-        let mut status = std::collections::HashMap::new();
-        status.insert("processor_type".to_string(), "ALSA".to_string());
-        status.insert("audio_running".to_string(), "false".to_string()); // We'll need to track this
-        Ok(status)
+        self.get_status()
     }
     
-    fn set_stereo_delay_parameter(&self, param: &str, value: f32) -> std::result::Result<(), AudioProcessorError> {
+    fn set_stereo_delay_parameter(&mut self, param: &str, value: f32) -> std::result::Result<(), AudioProcessorError> {
         self.set_stereo_delay_parameter(param, value)
     }
     

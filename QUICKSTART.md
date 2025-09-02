@@ -45,6 +45,7 @@ let input_audio = vec![0.1, 0.2, 0.3, 0.4, 0.5];
 let processed_audio = processor.process_audio(&input_audio)?;
 
 // Set parameters
+processor.set_stereo_delay_parameter("bpm", 120.0)?;
 processor.set_stereo_delay_parameter("feedback", 0.5)?;
 processor.set_stereo_delay_parameter("wet_mix", 0.7)?;
 ```
@@ -59,14 +60,13 @@ cargo run --example basic_usage
 
 ## Key Parameters
 
-| Parameter        | Range      | Description                     |
-| ---------------- | ---------- | ------------------------------- |
-| `left_delay`     | 0.001-4.0s | Left channel delay time         |
-| `right_delay`    | 0.001-4.0s | Right channel delay time        |
-| `feedback`       | 0.0-0.9    | Feedback amount                 |
-| `wet_mix`        | 0.0-1.0    | Wet signal mix                  |
-| `stereo_width`   | 0.0-1.0    | Stereo width enhancement        |
-| `cross_feedback` | 0.0-0.5    | Cross-feedback between channels |
+| Parameter        | Range   | Description                     |
+| ---------------- | ------- | ------------------------------- |
+| `bpm`            | 20-300  | Tempo in beats per minute       |
+| `feedback`       | 0.0-0.9 | Feedback amount                 |
+| `wet_mix`        | 0.0-1.0 | Wet signal mix                  |
+| `stereo_width`   | 0.0-1.0 | Stereo width enhancement        |
+| `cross_feedback` | 0.0-0.5 | Cross-feedback between channels |
 
 ## Testing
 

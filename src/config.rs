@@ -33,6 +33,9 @@ pub struct StereoDelayConfig {
     /// Right channel delay time in seconds
     pub right_delay: f32,
     
+    /// Tempo in beats per minute (BPM) - used to calculate delay times
+    pub bpm: Option<f32>,
+    
     /// Feedback amount (0.0 to 0.9)
     pub feedback: f32,
     
@@ -100,6 +103,7 @@ impl Default for StereoDelayConfig {
         Self {
             left_delay: 0.3,
             right_delay: 0.6,
+            bpm: None,
             feedback: 0.3,
             wet_mix: 0.6,
             ping_pong: true,
@@ -157,6 +161,59 @@ impl AudioConfig {
 }
 
 impl StereoDelayConfig {
+    /// Calculate delay time in seconds from BPM and note division
+    /// 
+    /// # Arguments
+    /// * `bpm` - Tempo in beats per minute
+    /// * `note_division` - Note division (1.0 = whole note, 0.5 = half note, 0.25 = quarter note, etc.)
+    /// 
+    /// # Returns
+    /// Delay time in seconds
+    pub fn bpm_to_delay_time(bpm: f32, note_division: f32) -> f32 {
+        if bpm <= 0.0 {
+            return 0.001; // Minimum delay time
+        }
+        (60.0 / bpm) * note_division
+    }
+    
+    /// Set BPM and calculate delay times based on musical timing
+    /// 
+    /// # Arguments
+    /// * `bpm` - Tempo in beats per minute (60-200 BPM recommended)
+    /// 
+    /// This will set left_delay to 1/4 note and right_delay to 1/2 note timing
+    pub fn set_bpm(&mut self, bpm: f32) {
+        self.bpm = Some(bpm);
+        // Set left delay to 1/4 note timing
+        self.left_delay = Self::bpm_to_delay_time(bpm, 0.25);
+        // Set right delay to 1/2 note timing (double the left delay)
+        self.right_delay = Self::bpm_to_delay_time(bpm, 0.5);
+    }
+    
+    /// Get the current BPM value
+    pub fn get_bpm(&self) -> Option<f32> {
+        self.bpm
+    }
+    
+    /// Calculate and return delay times for different note divisions at current BPM
+    pub fn get_delay_times_for_bpm(&self, bpm: f32) -> Vec<(String, f32)> {
+        let divisions = [
+            ("1/4 note", 0.25),
+            ("1/2 note", 0.5),
+            ("1/8 note", 0.125),
+            ("1/16 note", 0.0625),
+            ("1/3 note", 1.0 / 3.0),
+            ("1/6 note", 1.0 / 6.0),
+        ];
+        
+        divisions
+            .iter()
+            .map(|(name, division)| {
+                (name.to_string(), Self::bpm_to_delay_time(bpm, *division))
+            })
+            .collect()
+    }
+    
     /// Validate stereo delay configuration
     pub fn validate(&self) -> Result<(), crate::AudioProcessorError> {
         if !(0.001..=4.0).contains(&self.left_delay) {
@@ -175,6 +232,18 @@ impl StereoDelayConfig {
                 min: 0.001,
                 max: 4.0,
             });
+        }
+        
+        // Validate BPM if present
+        if let Some(bpm) = self.bpm {
+            if !(20.0..=300.0).contains(&bpm) {
+                return Err(crate::AudioProcessorError::InvalidParameter {
+                    param: "bpm".to_string(),
+                    value: bpm,
+                    min: 20.0,
+                    max: 300.0,
+                });
+            }
         }
         
         if !(0.0..=0.9).contains(&self.feedback) {
