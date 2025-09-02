@@ -28,8 +28,6 @@ class GuitarEffectsController {
       .addEventListener("click", () => this.resetDelay());
 
     // Stereo delay controls
-    this.setupKnobControl("left-delay", "left_delay", (value) => `${value}s`);
-    this.setupKnobControl("right-delay", "right_delay", (value) => `${value}s`);
     this.setupKnobControl("feedback", "feedback", (value) => value.toFixed(2));
     this.setupKnobControl("wet-mix", "wet_mix", (value) => value.toFixed(2));
     this.setupKnobControl("stereo-width", "stereo_width", (value) =>
@@ -164,16 +162,6 @@ class GuitarEffectsController {
     this.currentStatus = status;
 
     // Update stereo delay controls
-    this.updateKnobValue(
-      "left-delay",
-      status.stereo_delay.left_delay,
-      (value) => `${value}s`
-    );
-    this.updateKnobValue(
-      "right-delay",
-      status.stereo_delay.right_delay,
-      (value) => `${value}s`
-    );
     this.updateKnobValue("feedback", status.stereo_delay.feedback, (value) =>
       value.toFixed(2)
     );
