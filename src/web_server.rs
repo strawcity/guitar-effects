@@ -70,6 +70,7 @@ impl WebServer {
                 .app_data(web::Data::new(processor.clone()))
                 .service(Files::new("/static", "./web/static").show_files_listing())
                 .route("/", web::get().to(index))
+                .route("/api/test", web::get().to(test_endpoint))
                 .route("/api/status", web::get().to(get_status))
                 .route("/api/parameter", web::post().to(set_parameter))
                 .route("/api/start", web::post().to(start_audio))
@@ -88,13 +89,33 @@ async fn index() -> Result<actix_files::NamedFile> {
     Ok(actix_files::NamedFile::open("web/static/index.html")?)
 }
 
+async fn test_endpoint() -> Result<HttpResponse> {
+    println!("🔍 Web API: test endpoint called");
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "status": "ok",
+        "message": "API is working"
+    })))
+}
+
 async fn get_status(
     processor: web::Data<Arc<Mutex<Box<dyn AudioProcessorTrait>>>>,
 ) -> Result<HttpResponse> {
-    let processor = processor.lock().unwrap();
+    println!("🔍 Web API: get_status called");
+    
+    let processor = match processor.lock() {
+        Ok(p) => p,
+        Err(e) => {
+            println!("❌ Web API: Failed to acquire processor lock: {}", e);
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to acquire processor lock"
+            })));
+        }
+    };
     
     match processor.get_status() {
         Ok(status_map) => {
+            println!("✅ Web API: Status retrieved successfully, {} fields", status_map.len());
+            
             // Parse status into structured response
             let stereo_delay = StereoDelayStatus {
                 left_delay: status_map.get("left_delay").unwrap_or(&"0.3".to_string()).parse().unwrap_or(0.3),
@@ -129,9 +150,11 @@ async fn get_status(
                 system,
             };
             
+            println!("✅ Web API: Response structured successfully");
             Ok(HttpResponse::Ok().json(response))
         }
         Err(e) => {
+            println!("❌ Web API: Failed to get status: {}", e);
             Ok(HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("Failed to get status: {}", e)
             })))
