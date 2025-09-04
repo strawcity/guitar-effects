@@ -1,4 +1,4 @@
-use actix_web::{web, App, HttpServer, Result, HttpResponse, HttpRequest};
+use actix_web::{web, App, HttpServer, Result, HttpResponse};
 use actix_files::Files;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
@@ -242,7 +242,7 @@ async fn reset_delay(
 }
 
 async fn get_config(
-    processor: web::Data<Arc<Mutex<Box<dyn AudioProcessorTrait>>>>,
+    _processor: web::Data<Arc<Mutex<Box<dyn AudioProcessorTrait>>>>,
 ) -> Result<HttpResponse> {
     // For now, return a default config structure
     // In the future, this could read from the actual config file
@@ -271,8 +271,8 @@ async fn get_config(
 }
 
 async fn save_config(
-    processor: web::Data<Arc<Mutex<Box<dyn AudioProcessorTrait>>>>,
-    config: web::Json<serde_json::Value>,
+    _processor: web::Data<Arc<Mutex<Box<dyn AudioProcessorTrait>>>>,
+    _config: web::Json<serde_json::Value>,
 ) -> Result<HttpResponse> {
     // For now, just return success
     // In the future, this could save to the config file

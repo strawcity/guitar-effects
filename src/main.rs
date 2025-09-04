@@ -48,7 +48,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Test the audio processing
     println!("Testing audio processing...");
     {
-        let mut processor_guard = processor_arc.lock().unwrap();
+        let processor_guard = processor_arc.lock().unwrap();
         match processor_guard.test_audio() {
             Ok(_) => println!("✅ Audio test completed successfully"),
             Err(e) => {
