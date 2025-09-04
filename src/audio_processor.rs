@@ -612,24 +612,30 @@ impl AudioProcessor {
     pub fn get_status(&self) -> Result<std::collections::HashMap<String, String>, AudioProcessorError> {
         let mut status = std::collections::HashMap::new();
         
-        status.insert("stereo_delay_active".to_string(), "true".to_string());
-        status.insert("audio_running".to_string(), self.is_running.read().to_string());
+        // Stereo delay parameters (in seconds, not milliseconds)
+        status.insert("left_delay".to_string(), format!("{:.3}", self.config.stereo_delay.left_delay));
+        status.insert("right_delay".to_string(), format!("{:.3}", self.config.stereo_delay.right_delay));
+        status.insert("feedback".to_string(), format!("{:.3}", self.config.stereo_delay.feedback));
+        status.insert("wet_mix".to_string(), format!("{:.3}", self.config.stereo_delay.wet_mix));
+        status.insert("ping_pong".to_string(), self.config.stereo_delay.ping_pong.to_string());
+        status.insert("stereo_width".to_string(), format!("{:.3}", self.config.stereo_delay.stereo_width));
+        status.insert("cross_feedback".to_string(), format!("{:.3}", self.config.stereo_delay.cross_feedback));
+        
+        // Distortion parameters
+        status.insert("distortion_enabled".to_string(), self.config.distortion.enabled.to_string());
+        status.insert("distortion_type".to_string(), self.config.distortion.distortion_type.clone());
+        status.insert("distortion_drive".to_string(), format!("{:.3}", self.config.distortion.drive));
+        status.insert("distortion_mix".to_string(), format!("{:.3}", self.config.distortion.mix));
+        status.insert("distortion_feedback_intensity".to_string(), format!("{:.3}", self.config.distortion.feedback_intensity));
+        
+        // System parameters
+        status.insert("sample_rate".to_string(), self.config.sample_rate.to_string());
+        status.insert("buffer_size".to_string(), self.config.buffer_size.to_string());
+        status.insert("is_running".to_string(), self.is_running.read().to_string());
         
         // Add BPM information if available
         if let Some(bpm) = self.config.stereo_delay.bpm {
             status.insert("bpm".to_string(), format!("{:.0}", bpm));
-            status.insert("left_delay_ms".to_string(), format!("{:.0}", self.config.stereo_delay.left_delay * 1000.0));
-            status.insert("right_delay_ms".to_string(), format!("{:.0}", self.config.stereo_delay.right_delay * 1000.0));
-            status.insert("left_note_division".to_string(), "1/4 note".to_string());
-            status.insert("right_note_division".to_string(), "1/2 note".to_string());
-        } else {
-            status.insert("bpm".to_string(), "Not set".to_string());
-            status.insert("left_delay_ms".to_string(), format!("{:.0}", self.config.stereo_delay.left_delay * 1000.0));
-            status.insert("right_delay_ms".to_string(), format!("{:.0}", self.config.stereo_delay.right_delay * 1000.0));
-        }
-        
-        if let Ok(delay) = self.stereo_delay.lock() {
-            status.insert("stereo_delay_info".to_string(), delay.get_info());
         }
         
         Ok(status)
